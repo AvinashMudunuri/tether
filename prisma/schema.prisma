@@ -19,6 +19,8 @@ model Appointment {
   location   String?
   attendees  String?
   notes      String?  @db.Text
+  recurrenceType    String?
+  recurrenceEndDate DateTime? @db.Date
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

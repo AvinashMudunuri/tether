@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getDashboardData } from "@/lib/dashboard";
 
-function formatDate(d: Date) {
+function formatDate(d: Date | string) {
   return new Date(d).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",

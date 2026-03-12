@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 type Appointment = {
   id: string;
@@ -64,17 +65,25 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
     if (res.ok) {
       setEditing(false);
       router.refresh();
+      toast.success("Appointment updated");
+    } else {
+      toast.error("Failed to update appointment");
     }
   }
 
   async function handleDelete() {
     if (!confirm("Delete this appointment?")) return;
-    await fetch(`/api/v1/appointments/${appointment.id}`, {
+    const res = await fetch(`/api/v1/appointments/${appointment.id}`, {
       method: "DELETE",
       credentials: "include",
     });
-    router.push("/dashboard");
-    router.refresh();
+    if (res.ok) {
+      toast.success("Appointment deleted");
+      router.push("/dashboard");
+      router.refresh();
+    } else {
+      toast.error("Failed to delete appointment");
+    }
   }
 
   async function toggleChecklist(id: string, checked: boolean) {

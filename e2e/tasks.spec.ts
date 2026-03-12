@@ -22,8 +22,9 @@ test.describe("Tasks", () => {
 
   test("can add task", async ({ page }) => {
     await page.goto("/dashboard/tasks");
-    await page.getByPlaceholder("Add a task...").fill("E2E Test Task");
+    const taskTitle = `E2E Test Task ${Date.now()}`;
+    await page.getByPlaceholder("Add a task...").fill(taskTitle);
     await page.getByRole("button", { name: "Add" }).click();
-    await expect(page.getByText("E2E Test Task").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole("listitem").filter({ hasText: taskTitle })).toBeVisible({ timeout: 5000 });
   });
 });

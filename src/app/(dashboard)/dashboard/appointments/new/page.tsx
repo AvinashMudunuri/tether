@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 function getDefaultDate() {
   const d = new Date();
@@ -28,6 +29,8 @@ export default function NewAppointmentPage() {
     location: "",
     attendees: "",
     notes: "",
+    recurrenceType: "none" as "none" | "weekly" | "monthly",
+    recurrenceEndDate: "",
   });
 
   useEffect(() => {
@@ -52,6 +55,8 @@ export default function NewAppointmentPage() {
         location: form.location || undefined,
         attendees: form.attendees || undefined,
         notes: form.notes || undefined,
+        recurrenceType: form.recurrenceType !== "none" ? form.recurrenceType : undefined,
+        recurrenceEndDate: form.recurrenceEndDate || undefined,
       }),
       credentials: "include",
     });
@@ -59,11 +64,14 @@ export default function NewAppointmentPage() {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      setError(data.error || "Failed to create appointment");
+      const msg = data.error || "Failed to create appointment";
+      setError(msg);
+      toast.error(msg);
       setLoading(false);
       return;
     }
 
+    toast.success("Appointment created");
     router.push(`/dashboard/appointments/${data.id}`);
     router.refresh();
   }
@@ -146,6 +154,48 @@ export default function NewAppointmentPage() {
             />
           </div>
         </div>
+
+        <div>
+          <label
+            htmlFor="recurrence"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+          >
+            Repeat
+          </label>
+          <select
+            id="recurrence"
+            value={form.recurrenceType}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                recurrenceType: e.target.value as "none" | "weekly" | "monthly",
+              }))
+            }
+            className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="none">None</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+
+        {form.recurrenceType !== "none" && (
+          <div>
+            <label
+              htmlFor="recurrenceEndDate"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+            >
+              End date (optional)
+            </label>
+            <input
+              id="recurrenceEndDate"
+              type="date"
+              value={form.recurrenceEndDate}
+              onChange={(e) => setForm((f) => ({ ...f, recurrenceEndDate: e.target.value }))}
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        )}
 
         <div>
           <label

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { UserMenu } from "@/components/user-menu";
 
 export default async function DashboardLayout({
   children,
@@ -62,20 +63,7 @@ export default async function DashboardLayout({
               </Link>
             </nav>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-600 dark:text-slate-400">
-              {user.email}
-            </span>
-            <form action={signOut}>
-              <button
-                type="submit"
-                aria-label="Sign out"
-                className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-1"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
+          <UserMenu user={user} signOut={signOut} />
         </div>
       </header>
 

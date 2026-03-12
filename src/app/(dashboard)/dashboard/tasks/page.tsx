@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 type Task = {
   id: string;
@@ -11,17 +12,11 @@ type Task = {
   notes: string | null;
 };
 
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-}
-
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState<"all" | "pending" | "completed">("all");
   const [newTitle, setNewTitle] = useState("");
+  const [newDueDate, setNewDueDate] = useState("");
   const [loading, setLoading] = useState(true);
 
   const fetchTasks = async () => {
@@ -43,12 +38,19 @@ export default function TasksPage() {
     const res = await fetch("/api/v1/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: newTitle.trim() }),
+      body: JSON.stringify({
+        title: newTitle.trim(),
+        dueDate: newDueDate || undefined,
+      }),
       credentials: "include",
     });
     if (res.ok) {
       setNewTitle("");
+      setNewDueDate("");
       fetchTasks();
+      toast.success("Task added");
+    } else {
+      toast.error("Failed to add task");
     }
   };
 
@@ -64,13 +66,37 @@ export default function TasksPage() {
     );
   };
 
+  const updateTaskDueDate = async (id: string, dueDate: string | null) => {
+    const res = await fetch(`/api/v1/tasks/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dueDate: dueDate || null }),
+      credentials: "include",
+    });
+    if (res.ok) {
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === id ? { ...t, dueDate: dueDate } : t
+        )
+      );
+      toast.success(dueDate ? "Due date set" : "Due date removed");
+    } else {
+      toast.error("Failed to update due date");
+    }
+  };
+
   const deleteTask = async (id: string) => {
     if (!confirm("Delete this task?")) return;
-    await fetch(`/api/v1/tasks/${id}`, {
+    const res = await fetch(`/api/v1/tasks/${id}`, {
       method: "DELETE",
       credentials: "include",
     });
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    if (res.ok) {
+      setTasks((prev) => prev.filter((t) => t.id !== id));
+      toast.success("Task deleted");
+    } else {
+      toast.error("Failed to delete task");
+    }
   };
 
   const filtered =
@@ -95,26 +121,35 @@ export default function TasksPage() {
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
-        <form onSubmit={addTask} className="flex gap-3 mb-6" aria-label="Add task">
-          <label htmlFor="new-task" className="sr-only">
-            New task
-          </label>
-          <input
-            id="new-task"
-            type="text"
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="Add a task..."
-            className="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
-            aria-label="Task title"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            aria-label="Add task"
-          >
-            Add
-          </button>
+        <form onSubmit={addTask} className="space-y-3 mb-6" aria-label="Add task">
+          <div className="flex gap-3">
+            <label htmlFor="new-task" className="sr-only">
+              New task
+            </label>
+            <input
+              id="new-task"
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="Add a task..."
+              className="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
+              aria-label="Task title"
+            />
+            <input
+              type="date"
+              value={newDueDate}
+              onChange={(e) => setNewDueDate(e.target.value)}
+              className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              aria-label="Due date"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              aria-label="Add task"
+            >
+              Add
+            </button>
+          </div>
         </form>
 
         <div
@@ -140,7 +175,11 @@ export default function TasksPage() {
         </div>
 
         {loading ? (
-          <p className="text-slate-500 dark:text-slate-400">Loading...</p>
+          <div className="space-y-2 animate-pulse">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+            ))}
+          </div>
         ) : filtered.length === 0 ? (
           <p className="text-slate-500 dark:text-slate-400">
             No tasks yet. Add one above.
@@ -173,11 +212,17 @@ export default function TasksPage() {
                   >
                     {task.title}
                   </span>
-                  {task.dueDate && (
-                    <span className="block text-xs text-slate-500 dark:text-slate-400">
-                      Due {formatDate(task.dueDate)}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <input
+                      type="date"
+                      value={task.dueDate ? task.dueDate.slice(0, 10) : ""}
+                      onChange={(e) =>
+                        updateTaskDueDate(task.id, e.target.value || null)
+                      }
+                      className="text-xs px-2 py-0.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:ring-1 focus:ring-blue-500"
+                      aria-label="Due date"
+                    />
+                  </div>
                 </div>
                 <button
                   onClick={() => deleteTask(task.id)}

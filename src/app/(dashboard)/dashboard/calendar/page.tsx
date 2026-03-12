@@ -32,6 +32,7 @@ function dateKey(d: Date) {
 
 export default function CalendarPage() {
   const [view, setView] = useState<View>("month");
+  const [loading, setLoading] = useState(true);
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
@@ -39,13 +40,17 @@ export default function CalendarPage() {
   const [appointments, setAppointments] = useState<Record<string, number>>({});
 
   const fetchAppointments = useCallback(async () => {
+    setLoading(true);
     const start = new Date(cursor.year, cursor.month, 1);
     const end = new Date(cursor.year, cursor.month + 1, 0);
     const res = await fetch(
       `/api/v1/appointments?start=${start.toISOString().slice(0, 10)}&end=${end.toISOString().slice(0, 10)}`,
       { credentials: "include" }
     );
-    if (!res.ok) return;
+    if (!res.ok) {
+      setLoading(false);
+      return;
+    }
     const data = await res.json();
     const counts: Record<string, number> = {};
     for (const a of data) {
@@ -53,6 +58,7 @@ export default function CalendarPage() {
       counts[key] = (counts[key] || 0) + 1;
     }
     setAppointments(counts);
+    setLoading(false);
   }, [cursor.year, cursor.month]);
 
   useEffect(() => {
@@ -144,6 +150,16 @@ export default function CalendarPage() {
 
         {view === "month" && (
           <div className="p-4">
+            {loading ? (
+              <div className="grid grid-cols-7 gap-px bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden animate-pulse">
+                {DAYS.map((day) => (
+                  <div key={day} className="bg-slate-50 dark:bg-slate-900 p-2 h-8" />
+                ))}
+                {Array.from({ length: 35 }).map((_, i) => (
+                  <div key={i} className="bg-slate-50 dark:bg-slate-900 min-h-[80px] p-2" />
+                ))}
+              </div>
+            ) : (
             <div className="grid grid-cols-7 gap-px bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden">
               {DAYS.map((day) => (
                 <div
@@ -188,6 +204,7 @@ export default function CalendarPage() {
                 );
               })}
             </div>
+            )}
           </div>
         )}
 
