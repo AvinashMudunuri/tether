@@ -87,9 +87,35 @@ Without `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`, the build and lint still run; 
 
 ## Deployment (Vercel)
 
-1. Push to GitHub and import in Vercel
-2. Add all environment variables in Project Settings
-3. Deploy — cron is configured in `vercel.json` (runs every 15 min)
+1. **Import project**
+   - Go to [vercel.com/new](https://vercel.com/new)
+   - Import your GitHub repo
+   - Vercel auto-detects Next.js; build command `prisma generate && next build` is already in `package.json`
+
+2. **Add environment variables** (Project Settings → Environment Variables)
+
+   | Variable | Required | Notes |
+   |----------|----------|-------|
+   | `DATABASE_URL` | Yes | Use Supabase **pooler** URL for serverless |
+   | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase → Settings → API |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase → Settings → API |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Yes | For reminder cron (user email lookup) |
+   | `RESEND_API_KEY` | Yes | Resend dashboard |
+   | `RESEND_FROM_EMAIL` | No | Default: `onboarding@resend.dev` |
+   | `NEXT_PUBLIC_APP_URL` | Yes | Your Vercel URL, e.g. `https://tether-xxx.vercel.app` |
+   | `CRON_SECRET` | Yes | Generate: `openssl rand -hex 32` |
+
+3. **Configure Supabase**
+   - Supabase Dashboard → Authentication → URL Configuration
+   - Add Site URL: `https://your-app.vercel.app`
+   - Add Redirect URLs: `https://your-app.vercel.app/**`
+
+4. **Run migrations** (first deploy only)
+   ```bash
+   DATABASE_URL="your-production-url" pnpm prisma migrate deploy
+   ```
+
+5. **Deploy** — Each push to `main` deploys. Cron runs daily at 9:00 AM UTC via `vercel.json` (Hobby plan limit; Pro allows more frequent runs).
 
 ## Testing
 

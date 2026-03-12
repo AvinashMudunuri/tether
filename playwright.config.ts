@@ -14,9 +14,11 @@ export default defineConfig({
     viewport: { width: 1280, height: 720 },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  reporter: process.env.CI ? "github" : "html",
   webServer: {
-    command: "pnpm dev",
+    command: process.env.CI ? "pnpm start" : "pnpm dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
+    timeout: process.env.CI ? 180000 : 120000,
   },
 });

@@ -7,7 +7,7 @@ Quick reference for common operations and troubleshooting.
 1. Connect repo to Vercel
 2. Set environment variables (see below)
 3. Deploy — Vercel auto-detects Next.js
-4. Cron runs every 15 min via `vercel.json`
+4. Cron runs daily at 9:00 AM UTC via `vercel.json` (Hobby plan: 1/day; Pro: unlimited)
 
 ## Required Environment Variables
 
