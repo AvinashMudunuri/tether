@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tether — Personal Appointment & Task Manager
 
-## Getting Started
+A web-based application for managing appointments and personal tasks in one place. Quick entry for appointments from phone calls, emails, or notes.
 
-First, run the development server:
+## Tech Stack
+
+- **Frontend:** Next.js 14 (App Router), React, TypeScript, Tailwind CSS
+- **Backend:** Next.js API Routes
+- **Database:** PostgreSQL (Supabase or Neon)
+- **Auth:** Supabase Auth
+- **Email:** Resend
+- **ORM:** Prisma
+- **Hosting:** Vercel
+
+## Prerequisites
+
+- Node.js 18+
+- pnpm (`npm install -g pnpm`)
+- PostgreSQL database (Supabase or Neon)
+- [Resend](https://resend.com) account
+- [Vercel](https://vercel.com) account (for deployment)
+
+## Setup
+
+1. **Clone and install**
+
+   ```bash
+   git clone <repository-url>
+   cd tether
+   pnpm install
+   ```
+
+2. **Configure environment**
+
+   Copy `.env.example` to `.env` and fill in the values:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Database**
+
+   - Create a PostgreSQL database (Supabase or Neon)
+   - Add `DATABASE_URL` to `.env`
+   - Run migrations:
+
+   ```bash
+   pnpm prisma migrate dev
+   ```
+
+4. **Run locally**
+
+   ```bash
+   pnpm dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000).
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes* | For reminder cron (fetches user email) |
+| `RESEND_API_KEY` | Yes | Resend API key for emails |
+| `RESEND_FROM_EMAIL` | No | Sender (default: Resend onboarding) |
+| `NEXT_PUBLIC_APP_URL` | Yes | App URL (e.g. `http://localhost:3000`) |
+| `CRON_SECRET` | Yes* | For Vercel cron auth (*production only) |
+
+See [.env.example](.env.example) for the full list.
+
+## Deployment (Vercel)
+
+1. Push to GitHub and import in Vercel
+2. Add all environment variables in Project Settings
+3. Deploy — cron is configured in `vercel.json` (runs every 15 min)
+
+## Testing
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Run E2E tests (requires dev server or set PLAYWRIGHT_BASE_URL)
+pnpm test:e2e
+
+# With UI
+pnpm test:e2e:ui
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create a test account in Supabase, then set `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` in `.env` or when running:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+TEST_USER_EMAIL=your@email.com TEST_USER_PASSWORD=yourpassword pnpm test:e2e
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Auth tests (redirect, login/signup links) run without credentials. Appointments, tasks, and calendar tests require a valid test user.
 
-## Learn More
+## Documentation
 
-To learn more about Next.js, take a look at the following resources:
+- [Product Requirements (PRD)](docs/PRD.md)
+- [Implementation Plan](docs/IMPLEMENTATION_PLAN.md)
+- [Runbook](docs/RUNBOOK.md)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Common Issues
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Issue | Solution |
+|-------|----------|
+| Database connection fails | Verify `DATABASE_URL` format; use pooler URL for serverless |
+| Auth errors | Check Supabase URL/keys; add site URL in Supabase dashboard |
+| Emails not sending | Verify Resend API key; check domain verification |
+| Cron not running | Set `CRON_SECRET` in Vercel; verify `vercel.json` cron config |
+| Reminders not sent | Ensure `SUPABASE_SERVICE_ROLE_KEY` is set |
