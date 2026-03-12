@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
   const validReminderMinutes = Array.isArray(reminderMinutes)
     ? reminderMinutes.filter((m) => REMINDER_OPTIONS.includes(m))
     : [60, 30, 15];
-  const uniqueMinutes = [...new Set(validReminderMinutes)].sort((a, b) => b - a);
+  const uniqueMinutes = Array.from(new Set(validReminderMinutes)).sort((a, b) => b - a);
 
   const appointmentDate = new Date(date);
   const appointment = await prisma.appointment.create({
