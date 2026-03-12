@@ -77,7 +77,7 @@ The CI pipeline runs on every push and PR to `main`. Add these secrets in **Sett
 
 | Secret | Required | Description |
 |--------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `DATABASE_URL` | Yes | Supabase pooler URL with `?pgbouncer=true` for serverless/CI |
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
 | `TEST_USER_EMAIL` | For E2E | Test user email (7 tests skip if unset) |
@@ -96,7 +96,7 @@ Without `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`, the build and lint still run; 
 
    | Variable | Required | Notes |
    |----------|----------|-------|
-   | `DATABASE_URL` | Yes | Use Supabase **pooler** URL for serverless |
+   | `DATABASE_URL` | Yes | Use Supabase **pooler** URL; append `?pgbouncer=true` (auto-added for pooler URLs) |
    | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase → Settings → API |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase → Settings → API |
    | `SUPABASE_SERVICE_ROLE_KEY` | Yes | For reminder cron (user email lookup) |
