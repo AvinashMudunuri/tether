@@ -71,6 +71,20 @@ A web-based application for managing appointments and personal tasks in one plac
 
 See [.env.example](.env.example) for the full list.
 
+## CI (GitHub Actions)
+
+The CI pipeline runs on every push and PR to `main`. Add these secrets in **Settings → Secrets and variables → Actions**:
+
+| Secret | Required | Description |
+|--------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
+| `TEST_USER_EMAIL` | For E2E | Test user email (7 tests skip if unset) |
+| `TEST_USER_PASSWORD` | For E2E | Test user password |
+
+Without `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`, the build and lint still run; E2E runs 3 auth tests and skips 7.
+
 ## Deployment (Vercel)
 
 1. Push to GitHub and import in Vercel
