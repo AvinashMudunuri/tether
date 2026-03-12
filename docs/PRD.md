@@ -1,4 +1,4 @@
-# Tether — Personal Appointment & Task Manager
+# Tetherly — Personal Appointment & Task Manager
 
 ## Product Requirements Document (PRD) v3
 
@@ -6,7 +6,7 @@
 
 ## 1. Project Overview
 
-**App Name:** Tether
+**App Name:** Tetherly
 
 The objective is to develop a web-based application that helps users manage appointments and personal tasks in a single place. The application should allow quick entry of appointments that come from different sources such as phone calls, emails, or paper notes.
 

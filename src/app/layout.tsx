@@ -15,8 +15,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Tether — Appointment & Task Manager",
-  description: "Manage appointments and personal tasks in one place",
+  title: "Tetherly — Appointment & Task Manager",
+  description: "Never miss what matters. Manage appointments and personal tasks in one place.",
 };
 
 export default function RootLayout({

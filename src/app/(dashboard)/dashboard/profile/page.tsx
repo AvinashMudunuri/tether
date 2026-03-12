@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft, KeyRound, BarChart3, ListTodo, CheckCircle, Calendar, CalendarCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
@@ -77,9 +78,10 @@ export default async function ProfilePage() {
     <div className="max-w-xl space-y-6">
       <Link
         href="/dashboard"
-        className="inline-flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+        className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
       >
-        ← Dashboard
+        <ArrowLeft className="w-4 h-4" aria-hidden />
+        Dashboard
       </Link>
 
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
@@ -111,8 +113,9 @@ export default async function ProfilePage() {
         <div className="flex flex-wrap gap-3 mb-6">
           <Link
             href="/forgot-password"
-            className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
+            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
           >
+            <KeyRound className="w-4 h-4" aria-hidden />
             Reset password
           </Link>
           <ProfileSignOut />
@@ -123,41 +126,54 @@ export default async function ProfilePage() {
         </div>
 
         <div className="border-t border-slate-200 dark:border-slate-800 pt-6">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white mb-4">
+            <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" aria-hidden />
             Your activity
           </h2>
           <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                {totalTasks}
-              </p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Total tasks
-              </p>
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+              <ListTodo className="w-5 h-5 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" aria-hidden />
+              <div>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {totalTasks}
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Total tasks
+                </p>
+              </div>
             </div>
-            <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                {completedCount}
-              </p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Completed tasks
-              </p>
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" aria-hidden />
+              <div>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {completedCount}
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Completed tasks
+                </p>
+              </div>
             </div>
-            <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                {totalAppointments}
-              </p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Total appointments
-              </p>
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+              <Calendar className="w-5 h-5 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" aria-hidden />
+              <div>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {totalAppointments}
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Total appointments
+                </p>
+              </div>
             </div>
-            <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                {pastCount}
-              </p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Past appointments
-              </p>
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+              <CalendarCheck className="w-5 h-5 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" aria-hidden />
+              <div>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {pastCount}
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Past appointments
+                </p>
+              </div>
             </div>
           </div>
 

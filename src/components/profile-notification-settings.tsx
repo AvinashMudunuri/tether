@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Bell } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
@@ -41,7 +42,8 @@ export function ProfileNotificationSettings({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+      <h3 className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+        <Bell className="w-4 h-4" aria-hidden />
         Notifications
       </h3>
       <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -56,7 +58,7 @@ export function ProfileNotificationSettings({
           className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
         />
         <span className="text-sm text-slate-700 dark:text-slate-300">
-          Email reminders for appointments (1 hour, 30 min, and 15 min before)
+          Email reminders for appointments (customizable per appointment)
         </span>
       </label>
       <button

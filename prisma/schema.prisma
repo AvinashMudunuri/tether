@@ -1,4 +1,4 @@
-// Prisma schema for Tether - see docs/PRD.md
+// Prisma schema for Tetherly - see docs/PRD.md
 // User identity is managed by Supabase Auth; userId references auth.users.id
 
 generator client {
@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Appointment {
@@ -26,6 +27,7 @@ model Appointment {
 
   checklistItems ChecklistItem[]
   reminders       Reminder[]
+  attachments    Attachment[]
 }
 
 model Task {
@@ -37,6 +39,8 @@ model Task {
   notes     String?  @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  attachments TaskAttachment[]
 }
 
 model ChecklistItem {
@@ -57,4 +61,28 @@ model Reminder {
   sentAt        DateTime?
 
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+}
+
+model Attachment {
+  id            String   @id @default(cuid())
+  appointmentId String
+  fileName      String
+  storagePath  String
+  mimeType     String
+  size         Int
+  createdAt    DateTime @default(now())
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+}
+
+model TaskAttachment {
+  id        String   @id @default(cuid())
+  taskId    String
+  fileName  String
+  storagePath String
+  mimeType  String
+  size      Int
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }

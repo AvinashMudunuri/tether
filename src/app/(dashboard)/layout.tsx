@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { UserMenu } from "@/components/user-menu";
+import { DashboardNav } from "@/components/dashboard-nav";
+import { SearchBar } from "@/components/search-bar";
 
 export default async function DashboardLayout({
   children,
@@ -34,34 +36,17 @@ export default async function DashboardLayout({
           <div className="flex items-center gap-6">
             <Link
               href="/dashboard"
-              className="text-xl font-bold text-slate-900 dark:text-white"
+              className="flex flex-col items-start"
             >
-              Tether
+              <span className="text-xl font-bold text-slate-900 dark:text-white">
+                Tetherly
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
+                Never miss what matters.
+              </span>
             </Link>
-            <nav
-              className="hidden sm:flex gap-4"
-              role="navigation"
-              aria-label="Main navigation"
-            >
-              <Link
-                href="/dashboard"
-                className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-1"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/dashboard/calendar"
-                className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-1"
-              >
-                Calendar
-              </Link>
-              <Link
-                href="/dashboard/tasks"
-                className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-1"
-              >
-                Tasks
-              </Link>
-            </nav>
+            <DashboardNav />
+            <SearchBar />
           </div>
           <UserMenu user={user} signOut={signOut} />
         </div>

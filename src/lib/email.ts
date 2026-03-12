@@ -34,14 +34,14 @@ export async function sendReminderEmail(params: {
         <a href="${appointmentUrl}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">View Appointment</a>
       </p>
       <p style="color: #94a3b8; font-size: 12px; margin-top: 32px;">
-        This is an automated reminder from Tether.
+        This is an automated reminder from Tetherly.
       </p>
     </div>
   `;
 
   const resend = getResend();
   const { data, error } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL || "Tether <onboarding@resend.dev>",
+    from: process.env.RESEND_FROM_EMAIL || "Tetherly <onboarding@resend.dev>",
     to: [to],
     subject,
     html,

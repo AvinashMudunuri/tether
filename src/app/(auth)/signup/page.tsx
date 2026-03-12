@@ -52,7 +52,7 @@ export default function SignupPage() {
         Create an account
       </h1>
       <p className="text-slate-600 dark:text-slate-400 mb-6">
-        Get started with Tether
+        Get started with Tetherly
       </p>
 
       {needsConfirmation ? (

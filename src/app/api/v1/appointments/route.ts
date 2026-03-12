@@ -65,6 +65,8 @@ export async function POST(request: NextRequest) {
   const user = await getAuthUser();
   if (!user) return unauthorized();
 
+  const REMINDER_OPTIONS = [1440, 120, 60, 30, 15];
+
   let body: {
     title?: string;
     date?: string;
@@ -74,6 +76,7 @@ export async function POST(request: NextRequest) {
     notes?: string;
     recurrenceType?: string;
     recurrenceEndDate?: string;
+    reminderMinutes?: number[];
   };
   try {
     body = await request.json();
@@ -81,7 +84,7 @@ export async function POST(request: NextRequest) {
     return badRequest("Invalid JSON");
   }
 
-  const { title, date, time, location, attendees, notes, recurrenceType, recurrenceEndDate } = body;
+  const { title, date, time, location, attendees, notes, recurrenceType, recurrenceEndDate, reminderMinutes } = body;
 
   if (!title?.trim()) return badRequest("Title is required", { title: ["Required"] });
   if (!date) return badRequest("Date is required", { date: ["Required"] });
@@ -90,6 +93,11 @@ export async function POST(request: NextRequest) {
   const validRecurrence = ["weekly", "monthly"].includes(recurrenceType || "")
     ? recurrenceType
     : null;
+
+  const validReminderMinutes = Array.isArray(reminderMinutes)
+    ? reminderMinutes.filter((m) => REMINDER_OPTIONS.includes(m))
+    : [60, 30, 15];
+  const uniqueMinutes = [...new Set(validReminderMinutes)].sort((a, b) => b - a);
 
   const appointmentDate = new Date(date);
   const appointment = await prisma.appointment.create({
@@ -106,14 +114,10 @@ export async function POST(request: NextRequest) {
         ? new Date(recurrenceEndDate)
         : null,
       reminders: {
-        create: [
-          { minutesBefore: 60 },
-          { minutesBefore: 30 },
-          { minutesBefore: 15 },
-        ],
+        create: uniqueMinutes.map((minutesBefore) => ({ minutesBefore })),
       },
     },
-    include: { checklistItems: true, reminders: true },
+    include: { checklistItems: true, reminders: true, attachments: true },
   });
 
   await scheduleRemindersForAppointment(appointment.id);

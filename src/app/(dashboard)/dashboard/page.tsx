@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { Calendar, CalendarPlus, Clock, CalendarDays, ListTodo } from "lucide-react";
 import { getDashboardData } from "@/lib/dashboard";
 
 function formatDate(d: Date | string) {
@@ -39,14 +40,16 @@ export default async function DashboardPage() {
         <div className="flex gap-3">
           <Link
             href="/dashboard/calendar"
-            className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
+            <Calendar className="w-4 h-4" aria-hidden />
             Calendar
           </Link>
           <Link
             href="/dashboard/appointments/new"
-            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
           >
+            <CalendarPlus className="w-4 h-4" aria-hidden />
             New Appointment
           </Link>
         </div>
@@ -54,7 +57,8 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 md:grid-cols-2">
         <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white mb-4">
+            <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" aria-hidden />
             Today&apos;s Appointments
           </h2>
           {todaysAppointments.length === 0 ? (
@@ -67,15 +71,18 @@ export default async function DashboardPage() {
                 <li key={apt.id}>
                   <Link
                     href={`/dashboard/appointments/${apt.id}`}
-                    className="block p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                   >
-                    <span className="font-medium text-slate-900 dark:text-white">
-                      {apt.title}
-                    </span>
-                    <span className="block text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                      {formatTime(apt.time)}
-                      {apt.location && ` · ${apt.location}`}
-                    </span>
+                    <Calendar className="w-4 h-4 flex-shrink-0 mt-0.5 text-slate-500 dark:text-slate-400" aria-hidden />
+                    <div className="min-w-0">
+                      <span className="font-medium text-slate-900 dark:text-white">
+                        {apt.title}
+                      </span>
+                      <span className="block text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                        {formatTime(apt.time)}
+                        {apt.location && ` · ${apt.location}`}
+                      </span>
+                    </div>
                   </Link>
                 </li>
               ))}
@@ -84,7 +91,8 @@ export default async function DashboardPage() {
         </section>
 
         <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white mb-4">
+            <CalendarDays className="w-5 h-5 text-blue-600 dark:text-blue-400" aria-hidden />
             Upcoming
           </h2>
           {upcomingAppointments.length === 0 ? (
@@ -97,14 +105,17 @@ export default async function DashboardPage() {
                 <li key={apt.id}>
                   <Link
                     href={`/dashboard/appointments/${apt.id}`}
-                    className="block p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                   >
-                    <span className="font-medium text-slate-900 dark:text-white">
-                      {apt.title}
-                    </span>
-                    <span className="block text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                      {formatDate(apt.date)} · {formatTime(apt.time)}
-                    </span>
+                    <Calendar className="w-4 h-4 flex-shrink-0 mt-0.5 text-slate-500 dark:text-slate-400" aria-hidden />
+                    <div className="min-w-0">
+                      <span className="font-medium text-slate-900 dark:text-white">
+                        {apt.title}
+                      </span>
+                      <span className="block text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                        {formatDate(apt.date)} · {formatTime(apt.time)}
+                      </span>
+                    </div>
                   </Link>
                 </li>
               ))}
@@ -115,7 +126,8 @@ export default async function DashboardPage() {
 
       <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
+            <ListTodo className="w-5 h-5 text-blue-600 dark:text-blue-400" aria-hidden />
             Tasks
           </h2>
           <Link

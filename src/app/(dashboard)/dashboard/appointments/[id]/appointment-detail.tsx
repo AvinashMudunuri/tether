@@ -2,7 +2,17 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { MapPin, Users, Pencil, Trash2, Plus, Paperclip } from "lucide-react";
 import { toast } from "sonner";
+import { AttachmentPreview } from "@/components/attachment-preview";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+
+type Attachment = {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+};
 
 type Appointment = {
   id: string;
@@ -13,6 +23,7 @@ type Appointment = {
   attendees: string | null;
   notes: string | null;
   checklistItems: { id: string; label: string; checked: boolean; order: number }[];
+  attachments?: Attachment[];
 };
 
 function formatTime(t: string) {
@@ -35,9 +46,15 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
     notes: appointment.notes || "",
   });
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [checklist, setChecklist] = useState(appointment.checklistItems);
+  const [attachments, setAttachments] = useState<Attachment[]>(
+    appointment.attachments ?? []
+  );
   const [newChecklistLabel, setNewChecklistLabel] = useState("");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const editTitleRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (editing && editTitleRef.current) {
@@ -72,7 +89,7 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
   }
 
   async function handleDelete() {
-    if (!confirm("Delete this appointment?")) return;
+    setDeleteConfirmOpen(false);
     const res = await fetch(`/api/v1/appointments/${appointment.id}`, {
       method: "DELETE",
       credentials: "include",
@@ -97,6 +114,55 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
       prev.map((i) => (i.id === id ? { ...i, checked } : i))
     );
     router.refresh();
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Only JPG, PNG, and WebP images are allowed");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File must be under 5MB");
+      return;
+    }
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(
+      `/api/v1/appointments/${appointment.id}/attachments`,
+      {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      }
+    );
+    setUploading(false);
+    e.target.value = "";
+    if (res.ok) {
+      const attachment = await res.json();
+      setAttachments((prev) => [...prev, attachment]);
+      router.refresh();
+      toast.success("Attachment added");
+    } else {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data.error || "Failed to upload");
+    }
+  }
+
+  async function deleteAttachment(attachmentId: string) {
+    const res = await fetch(
+      `/api/v1/appointments/${appointment.id}/attachments/${attachmentId}`,
+      { method: "DELETE", credentials: "include" }
+    );
+    if (res.ok) {
+      setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+      router.refresh();
+      toast.success("Attachment removed");
+    } else {
+      toast.error("Failed to remove attachment");
+    }
   }
 
   async function addChecklistItem() {
@@ -218,13 +284,15 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
               at {formatTime(appointment.time)}
             </p>
             {appointment.location && (
-              <p className="mt-1 text-slate-600 dark:text-slate-400">
-                📍 {appointment.location}
+              <p className="flex items-center gap-2 mt-1 text-slate-600 dark:text-slate-400">
+                <MapPin className="w-4 h-4 flex-shrink-0" aria-hidden />
+                {appointment.location}
               </p>
             )}
             {appointment.attendees && (
-              <p className="mt-1 text-slate-600 dark:text-slate-400">
-                👥 {appointment.attendees}
+              <p className="flex items-center gap-2 mt-1 text-slate-600 dark:text-slate-400">
+                <Users className="w-4 h-4 flex-shrink-0" aria-hidden />
+                {appointment.attendees}
               </p>
             )}
             {appointment.notes && (
@@ -253,9 +321,10 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
                 />
                 <button
                   onClick={addChecklistItem}
-                  className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   aria-label="Add checklist item"
                 >
+                  <Plus className="w-4 h-4" aria-hidden />
                   Add
                 </button>
               </div>
@@ -293,25 +362,75 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
               )}
             </div>
 
+            <div className="mt-6">
+              <h3 className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                <Paperclip className="w-4 h-4" aria-hidden />
+                Attachments
+              </h3>
+              <div className="flex flex-wrap gap-3">
+                <label className="cursor-pointer">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                    className="sr-only"
+                    aria-label="Add attachment"
+                  />
+                  <span className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-400 dark:hover:border-slate-500 transition-colors">
+                    {uploading ? "Uploading..." : "Add image (JPG, PNG, WebP)"}
+                  </span>
+                </label>
+                {attachments.map((att) => (
+                  <AttachmentPreview
+                    key={att.id}
+                    entityType="appointments"
+                    entityId={appointment.id}
+                    attachment={att}
+                    onDelete={() => deleteAttachment(att.id)}
+                  />
+                ))}
+              </div>
+              {attachments.length === 0 && !uploading && (
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  No attachments. Add receipts, maps, or screenshots.
+                </p>
+              )}
+            </div>
+
             <div className="mt-6 flex gap-3">
               <button
                 onClick={() => setEditing(true)}
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 aria-label="Edit appointment"
               >
+                <Pencil className="w-4 h-4" aria-hidden />
                 Edit
               </button>
               <button
-                onClick={handleDelete}
-                className="px-4 py-2 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                onClick={() => setDeleteConfirmOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                 aria-label="Delete appointment"
               >
+                <Trash2 className="w-4 h-4" aria-hidden />
                 Delete
               </button>
             </div>
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Delete appointment"
+        message="Are you sure you want to delete this appointment? This cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirmOpen(false)}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-# Tether — Runbook
+# Tetherly — Runbook
 
 Quick reference for common operations and troubleshooting.
 
@@ -18,7 +18,7 @@ Quick reference for common operations and troubleshooting.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key | Supabase Dashboard → Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key | Supabase Dashboard → Settings → API |
 | `RESEND_API_KEY` | Resend API key | Resend Dashboard |
-| `RESEND_FROM_EMAIL` | Sender email (optional) | e.g. `Tether <noreply@yourdomain.com>` |
+| `RESEND_FROM_EMAIL` | Sender email (optional) | e.g. `Tetherly <noreply@yourdomain.com>` |
 | `NEXT_PUBLIC_APP_URL` | Production URL | e.g. `https://your-app.vercel.app` |
 | `CRON_SECRET` | Secret for cron auth | Generate random string; set in Vercel |
 

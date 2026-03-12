@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, CalendarPlus } from "lucide-react";
 import { toast } from "sonner";
 
 function getDefaultDate() {
@@ -22,6 +23,14 @@ export default function NewAppointmentPage() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const REMINDER_OPTIONS = [
+    { value: 1440, label: "1 day before" },
+    { value: 120, label: "2 hours before" },
+    { value: 60, label: "1 hour before" },
+    { value: 30, label: "30 minutes before" },
+    { value: 15, label: "15 minutes before" },
+  ] as const;
+
   const [form, setForm] = useState({
     title: "",
     date: getDefaultDate(),
@@ -31,6 +40,7 @@ export default function NewAppointmentPage() {
     notes: "",
     recurrenceType: "none" as "none" | "weekly" | "monthly",
     recurrenceEndDate: "",
+    reminderMinutes: [60, 30, 15] as number[],
   });
 
   useEffect(() => {
@@ -48,7 +58,7 @@ export default function NewAppointmentPage() {
     const res = await fetch("/api/v1/appointments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+        body: JSON.stringify({
         title: form.title,
         date: form.date,
         time: form.time,
@@ -57,6 +67,7 @@ export default function NewAppointmentPage() {
         notes: form.notes || undefined,
         recurrenceType: form.recurrenceType !== "none" ? form.recurrenceType : undefined,
         recurrenceEndDate: form.recurrenceEndDate || undefined,
+        reminderMinutes: form.reminderMinutes,
       }),
       credentials: "include",
     });
@@ -80,12 +91,14 @@ export default function NewAppointmentPage() {
     <div className="max-w-xl space-y-6">
       <Link
         href="/dashboard"
-        className="inline-flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+        className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
       >
-        ← Back to dashboard
+        <ArrowLeft className="w-4 h-4" aria-hidden />
+        Back to dashboard
       </Link>
 
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+      <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white">
+        <CalendarPlus className="w-7 h-7 text-blue-600 dark:text-blue-400" aria-hidden />
         New Appointment
       </h1>
 
@@ -152,6 +165,35 @@ export default function NewAppointmentPage() {
               required
               className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Remind me
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {REMINDER_OPTIONS.map(({ value, label }) => (
+              <label
+                key={value}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/20"
+              >
+                <input
+                  type="checkbox"
+                  checked={form.reminderMinutes.includes(value)}
+                  onChange={(e) => {
+                    setForm((f) => ({
+                      ...f,
+                      reminderMinutes: e.target.checked
+                        ? [...f.reminderMinutes, value].sort((a, b) => b - a)
+                        : f.reminderMinutes.filter((m) => m !== value),
+                    }));
+                  }}
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-slate-700 dark:text-slate-300">{label}</span>
+              </label>
+            ))}
           </div>
         </div>
 

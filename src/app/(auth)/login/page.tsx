@@ -43,7 +43,7 @@ function LoginForm() {
         Welcome back
       </h1>
       <p className="text-slate-600 dark:text-slate-400 mb-6">
-        Sign in to your Tether account
+        Sign in to your Tetherly account
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">

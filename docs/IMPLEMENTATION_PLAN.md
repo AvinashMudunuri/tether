@@ -1,8 +1,8 @@
-# Tether — Implementation Plan
+# Tetherly — Implementation Plan
 
 ## Overview
 
-This document outlines the phased implementation plan for the Tether (Personal Appointment & Task Manager) MVP. Total estimated duration: 5–6 weeks.
+This document outlines the phased implementation plan for Tetherly (Personal Appointment & Task Manager) MVP. Total estimated duration: 5–6 weeks.
 
 ---
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 
 type View = "month" | "week" | "day";
 
@@ -131,9 +132,10 @@ export default function CalendarPage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <Link
           href="/dashboard"
-          className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
         >
-          ← Dashboard
+          <ArrowLeft className="w-4 h-4" aria-hidden />
+          Dashboard
         </Link>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
           Calendar
@@ -148,7 +150,7 @@ export default function CalendarPage() {
               className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               aria-label="Previous month"
             >
-              ←
+              <ChevronLeft className="w-5 h-5" aria-hidden />
             </button>
             <button
               onClick={goToday}
@@ -162,7 +164,7 @@ export default function CalendarPage() {
               className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               aria-label="Next month"
             >
-              →
+              <ChevronRight className="w-5 h-5" aria-hidden />
             </button>
           </div>
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">

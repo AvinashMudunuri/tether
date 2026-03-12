@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
 
   const tasks = await prisma.task.findMany({
     where,
+    include: { attachments: true },
     orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
   });
 

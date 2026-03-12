@@ -1,4 +1,4 @@
-# Tether — Personal Appointment & Task Manager
+# Tetherly — Personal Appointment & Task Manager
 
 A web-based application for managing appointments and personal tasks in one place. Quick entry for appointments from phone calls, emails, or notes.
 
@@ -20,6 +20,7 @@ A web-based application for managing appointments and personal tasks in one plac
 - PostgreSQL database (Supabase or Neon)
 - [Resend](https://resend.com) account
 - [Inngest](https://inngest.com) account (for scheduled reminders)
+- Supabase Storage (for appointment attachments; bucket `appointment-attachments` is created automatically on first upload)
 - [Vercel](https://vercel.com) account (for deployment)
 
 ## Setup
@@ -111,7 +112,7 @@ Without `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`, the build and lint still run; 
    | `SUPABASE_SERVICE_ROLE_KEY` | Yes | For reminder cron (user email lookup) |
    | `RESEND_API_KEY` | Yes | Resend dashboard |
    | `RESEND_FROM_EMAIL` | No | Default: `onboarding@resend.dev` |
-   | `NEXT_PUBLIC_APP_URL` | Yes | Your Vercel URL, e.g. `https://tether-xxx.vercel.app` |
+   | `NEXT_PUBLIC_APP_URL` | Yes | Your Vercel URL, e.g. `https://tetherly-xxx.vercel.app` |
    | `CRON_SECRET` | Yes | Generate: `openssl rand -hex 32` |
 
 3. **Configure Supabase**

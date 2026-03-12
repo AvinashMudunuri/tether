@@ -14,7 +14,7 @@ export async function GET(
 
   const appointment = await prisma.appointment.findFirst({
     where: { id, userId: user.id },
-    include: { checklistItems: true, reminders: true },
+    include: { checklistItems: true, reminders: true, attachments: true },
   });
 
   if (!appointment) return notFound("Appointment not found");
@@ -54,7 +54,7 @@ export async function PUT(
       ...(attendees !== undefined && { attendees: attendees?.trim() || null }),
       ...(notes !== undefined && { notes: notes?.trim() || null }),
     },
-    include: { checklistItems: true, reminders: true },
+    include: { checklistItems: true, reminders: true, attachments: true },
   });
 
   if (date !== undefined || time !== undefined) {

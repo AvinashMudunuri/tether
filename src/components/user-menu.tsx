@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { User, LogOut } from "lucide-react";
 
 type User = {
   email?: string | null;
@@ -71,9 +72,10 @@ export function UserMenu({
           <Link
             href="/dashboard/profile"
             onClick={() => setOpen(false)}
-            className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             role="menuitem"
           >
+            <User className="w-4 h-4" aria-hidden />
             View profile
           </Link>
           <button
@@ -82,9 +84,10 @@ export function UserMenu({
               setOpen(false);
               signOut();
             }}
-            className="block w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             role="menuitem"
           >
+            <LogOut className="w-4 h-4" aria-hidden />
             Sign out
           </button>
         </div>

@@ -1,7 +1,7 @@
 import { inngest } from "@/inngest/client";
 import { prisma } from "@/lib/db";
 
-const REMINDER_MINUTES = [60, 30, 15] as const;
+const DEFAULT_REMINDER_MINUTES = [60, 30, 15];
 
 export async function scheduleRemindersForAppointment(appointmentId: string) {
   const appointment = await prisma.appointment.findUnique({
@@ -16,24 +16,19 @@ export async function scheduleRemindersForAppointment(appointmentId: string) {
   aptDate.setHours(h, m, 0, 0);
   const aptTimeMs = aptDate.getTime();
 
-  const events = REMINDER_MINUTES.map((minutesBefore) => {
-    const sendAt = aptTimeMs - minutesBefore * 60 * 1000;
-    if (sendAt <= Date.now()) return null;
-
-    const existing = appointment.reminders.find(
-      (r) => r.minutesBefore === minutesBefore && !r.sent
-    );
-    const reminderId = existing?.id;
-
-    if (!reminderId) return null;
-
-    return {
-      name: "reminder/send" as const,
-      data: { reminderId },
-      ts: sendAt,
-      id: `reminder-${reminderId}`,
-    };
-  }).filter(Boolean) as { name: "reminder/send"; data: { reminderId: string }; ts: number; id: string }[];
+  const unsentReminders = appointment.reminders.filter((r) => !r.sent);
+  const events = unsentReminders
+    .map((reminder) => {
+      const sendAt = aptTimeMs - reminder.minutesBefore * 60 * 1000;
+      if (sendAt <= Date.now()) return null;
+      return {
+        name: "reminder/send" as const,
+        data: { reminderId: reminder.id },
+        ts: sendAt,
+        id: `reminder-${reminder.id}`,
+      };
+    })
+    .filter(Boolean) as { name: "reminder/send"; data: { reminderId: string }; ts: number; id: string }[];
 
   if (events.length > 0) {
     await inngest.send(events);
@@ -57,7 +52,7 @@ export async function rescheduleRemindersForAppointment(appointmentId: string) {
   aptDate.setHours(h, m, 0, 0);
   const aptTimeMs = aptDate.getTime();
 
-  const remindersToCreate = REMINDER_MINUTES.map((minutesBefore) => ({
+  const remindersToCreate = DEFAULT_REMINDER_MINUTES.map((minutesBefore) => ({
     appointmentId,
     minutesBefore,
   }));
