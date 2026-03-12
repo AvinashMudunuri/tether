@@ -24,6 +24,6 @@ test.describe("Tasks", () => {
     await page.goto("/dashboard/tasks");
     await page.getByPlaceholder("Add a task...").fill("E2E Test Task");
     await page.getByRole("button", { name: "Add" }).click();
-    await expect(page.getByText("E2E Test Task")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("E2E Test Task").first()).toBeVisible({ timeout: 5000 });
   });
 });
