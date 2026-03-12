@@ -4,14 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
 import { AppointmentDetail } from "./appointment-detail";
 
-function formatDate(d: Date) {
-  return new Date(d).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-}
-
 export default async function AppointmentPage({
   params,
 }: {

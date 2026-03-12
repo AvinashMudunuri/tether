@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 type View = "month" | "week" | "day";
 
@@ -32,7 +31,6 @@ function dateKey(d: Date) {
 }
 
 export default function CalendarPage() {
-  const router = useRouter();
   const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
@@ -40,7 +38,7 @@ export default function CalendarPage() {
   });
   const [appointments, setAppointments] = useState<Record<string, number>>({});
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     const start = new Date(cursor.year, cursor.month, 1);
     const end = new Date(cursor.year, cursor.month + 1, 0);
     const res = await fetch(
@@ -55,11 +53,11 @@ export default function CalendarPage() {
       counts[key] = (counts[key] || 0) + 1;
     }
     setAppointments(counts);
-  };
+  }, [cursor.year, cursor.month]);
 
   useEffect(() => {
     fetchAppointments();
-  }, [cursor.year, cursor.month]);
+  }, [fetchAppointments]);
 
   const goPrev = () => {
     if (view === "month") {

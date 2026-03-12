@@ -30,8 +30,6 @@ export default async function DashboardPage() {
   const { todaysAppointments, upcomingAppointments, tasks } =
     await getDashboardData(user.id);
 
-  const pendingTasks = tasks.filter((t) => !t.completed);
-
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between flex-wrap gap-4">
