@@ -10,6 +10,7 @@ A web-based application for managing appointments and personal tasks in one plac
 - **Auth:** Supabase Auth
 - **Email:** Resend
 - **ORM:** Prisma
+- **Job queue:** Inngest (appointment reminders)
 - **Hosting:** Vercel
 
 ## Prerequisites
@@ -18,6 +19,7 @@ A web-based application for managing appointments and personal tasks in one plac
 - pnpm (`npm install -g pnpm`)
 - PostgreSQL database (Supabase or Neon)
 - [Resend](https://resend.com) account
+- [Inngest](https://inngest.com) account (for scheduled reminders)
 - [Vercel](https://vercel.com) account (for deployment)
 
 ## Setup
@@ -54,6 +56,12 @@ A web-based application for managing appointments and personal tasks in one plac
    pnpm dev
    ```
 
+   For appointment reminders (Inngest), run the Inngest dev server in another terminal:
+
+   ```bash
+   npx inngest-cli@latest dev
+   ```
+
    Open [http://localhost:3000](http://localhost:3000).
 
 ## Environment Variables
@@ -63,11 +71,12 @@ A web-based application for managing appointments and personal tasks in one plac
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes* | For reminder cron (fetches user email) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes* | For reminder emails (fetches user email) |
 | `RESEND_API_KEY` | Yes | Resend API key for emails |
 | `RESEND_FROM_EMAIL` | No | Sender (default: Resend onboarding) |
 | `NEXT_PUBLIC_APP_URL` | Yes | App URL (e.g. `http://localhost:3000`) |
-| `CRON_SECRET` | Yes* | For Vercel cron auth (*production only) |
+| `INNGEST_SIGNING_KEY` | Yes* | Inngest signing key (*production) |
+| `INNGEST_EVENT_KEY` | Yes* | Inngest event key (*production) |
 
 See [.env.example](.env.example) for the full list.
 

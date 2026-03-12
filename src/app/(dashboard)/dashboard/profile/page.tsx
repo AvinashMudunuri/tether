@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { ProfileEditName } from "@/components/profile-edit-name";
 import { ProfileSignOut } from "@/components/profile-sign-out";
+import { ProfileNotificationSettings } from "@/components/profile-notification-settings";
 
 function getInitials(user: { email?: string | null; user_metadata?: { full_name?: string } | null }): string {
   const name = user.user_metadata?.full_name?.trim();
@@ -41,6 +42,7 @@ export default async function ProfilePage() {
 
   const name = user.user_metadata?.full_name as string | undefined;
   const initials = getInitials(user);
+  const notificationPrefs = (user.user_metadata?.notification_preferences as { emailReminders?: boolean } | undefined) ?? {};
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const today = new Date(todayStr + "T00:00:00.000Z");
@@ -114,6 +116,10 @@ export default async function ProfilePage() {
             Reset password
           </Link>
           <ProfileSignOut />
+        </div>
+
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-6 mb-6">
+          <ProfileNotificationSettings initialPrefs={notificationPrefs} />
         </div>
 
         <div className="border-t border-slate-200 dark:border-slate-800 pt-6">

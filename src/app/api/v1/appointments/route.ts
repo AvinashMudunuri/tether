@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAuthUser, unauthorized, badRequest } from "@/lib/api-auth";
 import { expandRecurringAppointments } from "@/lib/recurrence";
+import { scheduleRemindersForAppointment } from "@/lib/schedule-reminders";
 
 export async function GET(request: NextRequest) {
   const user = await getAuthUser();
@@ -106,13 +107,16 @@ export async function POST(request: NextRequest) {
         : null,
       reminders: {
         create: [
-          { minutesBefore: 1440 },
           { minutesBefore: 60 },
+          { minutesBefore: 30 },
+          { minutesBefore: 15 },
         ],
       },
     },
     include: { checklistItems: true, reminders: true },
   });
+
+  await scheduleRemindersForAppointment(appointment.id);
 
   return Response.json(appointment, { status: 201 });
 }

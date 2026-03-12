@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAuthUser, unauthorized, notFound, badRequest } from "@/lib/api-auth";
+import { rescheduleRemindersForAppointment } from "@/lib/schedule-reminders";
 
 export async function GET(
   request: NextRequest,
@@ -55,6 +56,10 @@ export async function PUT(
     },
     include: { checklistItems: true, reminders: true },
   });
+
+  if (date !== undefined || time !== undefined) {
+    await rescheduleRemindersForAppointment(id);
+  }
 
   return Response.json(appointment);
 }
