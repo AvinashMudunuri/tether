@@ -107,8 +107,8 @@ Without `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`, the build and lint still run; 
 
 3. **Configure Supabase**
    - Supabase Dashboard → Authentication → URL Configuration
-   - Add Site URL: `https://your-app.vercel.app`
-   - Add Redirect URLs: `https://your-app.vercel.app/**`
+   - Set Site URL: `https://your-app.vercel.app`
+   - Add Redirect URLs: `https://your-app.vercel.app/**` and `https://your-app.vercel.app/auth/reset-password`
 
 4. **Run migrations** (first deploy only)
    ```bash

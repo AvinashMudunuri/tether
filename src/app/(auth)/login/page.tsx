@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -11,6 +11,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const resetSuccess = searchParams.get("reset") === "success";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,6 +47,14 @@ export default function LoginPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {resetSuccess && (
+          <div
+            className="p-3 rounded-lg bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300 text-sm"
+            role="status"
+          >
+            Password updated. Sign in with your new password.
+          </div>
+        )}
         {error && (
           <div
             className="p-3 rounded-lg bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 text-sm"
@@ -75,12 +85,20 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-          >
-            Password
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
+              Password
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <input
             id="password"
             type="password"
