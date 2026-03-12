@@ -11,15 +11,17 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNeedsConfirmation(false);
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: name } },
@@ -32,8 +34,12 @@ export default function SignupPage() {
       return;
     }
 
-    router.push("/dashboard");
-    router.refresh();
+    if (data.session) {
+      router.push("/dashboard");
+      router.refresh();
+    } else {
+      setNeedsConfirmation(true);
+    }
   }
 
   return (
@@ -49,6 +55,28 @@ export default function SignupPage() {
         Get started with Tether
       </p>
 
+      {needsConfirmation ? (
+        <div
+          className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800"
+          role="status"
+        >
+          <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">
+            Check your email
+          </p>
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            We&apos;ve sent a confirmation link to <strong>{email}</strong>. Please
+            click the link in that email to confirm your account before signing in.
+          </p>
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+            <Link
+              href="/login"
+              className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
+            >
+              Go to sign in
+            </Link>
+          </p>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div
@@ -126,6 +154,7 @@ export default function SignupPage() {
           {loading ? "Creating account..." : "Sign up"}
         </button>
       </form>
+      )}
 
       <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
         Already have an account?{" "}

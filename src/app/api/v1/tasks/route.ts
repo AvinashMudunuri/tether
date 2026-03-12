@@ -2,12 +2,27 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAuthUser, unauthorized, badRequest } from "@/lib/api-auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const user = await getAuthUser();
   if (!user) return unauthorized();
 
+  const { searchParams } = new URL(request.url);
+  const start = searchParams.get("start");
+  const end = searchParams.get("end");
+
+  const where: { userId: string; dueDate?: { gte?: Date; lte?: Date } } = {
+    userId: user.id,
+  };
+
+  if (start && end) {
+    where.dueDate = {
+      gte: new Date(start),
+      lte: new Date(end),
+    };
+  }
+
   const tasks = await prisma.task.findMany({
-    where: { userId: user.id },
+    where,
     orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
   });
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 type Task = {
@@ -13,6 +14,8 @@ type Task = {
 };
 
 export default function TasksPage() {
+  const searchParams = useSearchParams();
+  const dateParam = searchParams.get("date");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState<"all" | "pending" | "completed">("all");
   const [newTitle, setNewTitle] = useState("");
@@ -99,12 +102,24 @@ export default function TasksPage() {
     }
   };
 
+  const dateFiltered = dateParam
+    ? tasks.filter((t) => t.dueDate && t.dueDate.slice(0, 10) === dateParam)
+    : tasks;
+
   const filtered =
     filter === "all"
-      ? tasks
+      ? dateFiltered
       : filter === "pending"
-        ? tasks.filter((t) => !t.completed)
-        : tasks.filter((t) => t.completed);
+        ? dateFiltered.filter((t) => !t.completed)
+        : dateFiltered.filter((t) => t.completed);
+
+  const dateLabel = dateParam
+    ? new Date(dateParam + "T12:00:00").toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      })
+    : null;
 
   return (
     <div className="space-y-6">
@@ -119,6 +134,18 @@ export default function TasksPage() {
           Tasks
         </h1>
       </div>
+
+      {dateLabel && (
+        <p className="text-slate-600 dark:text-slate-400">
+          {filtered.length === 0
+            ? `No tasks due on ${dateLabel}`
+            : `Tasks due on ${dateLabel}`}
+          {" · "}
+          <Link href="/dashboard/tasks" className="text-blue-600 hover:text-blue-500 dark:text-blue-400">
+            Show all
+          </Link>
+        </p>
+      )}
 
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
         <form onSubmit={addTask} className="space-y-3 mb-6" aria-label="Add task">

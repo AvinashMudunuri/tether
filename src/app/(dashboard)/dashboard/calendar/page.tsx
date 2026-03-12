@@ -11,6 +11,9 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+type AppointmentItem = { id: string; title: string; time: string; date: string };
+type TaskItem = { id: string; title: string; dueDate: string | null; completed: boolean };
+
 function getMonthDays(year: number, month: number) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
@@ -26,8 +29,16 @@ function getMonthDays(year: number, month: number) {
   return grid;
 }
 
-function dateKey(d: Date) {
-  return d.toISOString().slice(0, 10);
+function dateKey(d: Date | string) {
+  return new Date(d).toISOString().slice(0, 10);
+}
+
+function formatTime(t: string) {
+  const [h, m] = t.split(":");
+  const hour = parseInt(h, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const h12 = hour % 12 || 12;
+  return `${h12}:${m} ${ampm}`;
 }
 
 export default function CalendarPage() {
@@ -37,33 +48,59 @@ export default function CalendarPage() {
     const d = new Date();
     return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
   });
-  const [appointments, setAppointments] = useState<Record<string, number>>({});
+  const [appointmentsByDate, setAppointmentsByDate] = useState<Record<string, AppointmentItem[]>>({});
+  const [tasksByDate, setTasksByDate] = useState<Record<string, TaskItem[]>>({});
 
-  const fetchAppointments = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     const start = new Date(cursor.year, cursor.month, 1);
     const end = new Date(cursor.year, cursor.month + 1, 0);
-    const res = await fetch(
-      `/api/v1/appointments?start=${start.toISOString().slice(0, 10)}&end=${end.toISOString().slice(0, 10)}`,
-      { credentials: "include" }
-    );
-    if (!res.ok) {
-      setLoading(false);
-      return;
+    const startStr = start.toISOString().slice(0, 10);
+    const endStr = end.toISOString().slice(0, 10);
+
+    const [appointmentsRes, tasksRes] = await Promise.all([
+      fetch(`/api/v1/appointments?start=${startStr}&end=${endStr}`, { credentials: "include" }),
+      fetch(`/api/v1/tasks?start=${startStr}&end=${endStr}`, { credentials: "include" }),
+    ]);
+
+    const aptByDate: Record<string, AppointmentItem[]> = {};
+    if (appointmentsRes.ok) {
+      const data = await appointmentsRes.json();
+      for (const a of data) {
+        const key = dateKey(a.date);
+        if (!aptByDate[key]) aptByDate[key] = [];
+        aptByDate[key].push({
+          id: a.id,
+          title: a.title,
+          time: a.time,
+          date: key,
+        });
+      }
     }
-    const data = await res.json();
-    const counts: Record<string, number> = {};
-    for (const a of data) {
-      const key = new Date(a.date).toISOString().slice(0, 10);
-      counts[key] = (counts[key] || 0) + 1;
+    setAppointmentsByDate(aptByDate);
+
+    const tskByDate: Record<string, TaskItem[]> = {};
+    if (tasksRes.ok) {
+      const data = await tasksRes.json();
+      for (const t of data) {
+        if (!t.dueDate) continue;
+        const key = new Date(t.dueDate).toISOString().slice(0, 10);
+        if (!tskByDate[key]) tskByDate[key] = [];
+        tskByDate[key].push({
+          id: t.id,
+          title: t.title,
+          dueDate: t.dueDate,
+          completed: t.completed,
+        });
+      }
     }
-    setAppointments(counts);
+    setTasksByDate(tskByDate);
     setLoading(false);
   }, [cursor.year, cursor.month]);
 
   useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
+    fetchData();
+  }, [fetchData]);
 
   const goPrev = () => {
     if (view === "month") {
@@ -131,20 +168,30 @@ export default function CalendarPage() {
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
             {MONTHS[cursor.month]} {cursor.year}
           </h2>
-          <div className="flex gap-1">
-            {(["month", "week", "day"] as const).map((v) => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                className={`px-3 py-1 rounded-lg text-sm capitalize ${
-                  view === v
-                    ? "bg-blue-600 text-white"
-                    : "hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
-              >
-                {v}
-              </button>
-            ))}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="inline-block w-2 h-2 rounded-full bg-blue-500" aria-hidden />
+              <span className="text-slate-600 dark:text-slate-400">Appointments</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="inline-block w-2 h-2 rounded-full bg-amber-500" aria-hidden />
+              <span className="text-slate-600 dark:text-slate-400">Tasks</span>
+            </div>
+            <div className="flex gap-1">
+              {(["month", "week", "day"] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={`px-3 py-1 rounded-lg text-sm capitalize ${
+                    view === v
+                      ? "bg-blue-600 text-white"
+                      : "hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -179,27 +226,64 @@ export default function CalendarPage() {
                   );
                 }
                 const key = dateKey(new Date(cursor.year, cursor.month, d));
-                const count = appointments[key] || 0;
+                const appointments = appointmentsByDate[key] || [];
+                const tasks = tasksByDate[key] || [];
                 const isToday = key === todayKey;
 
                 return (
                   <div
                     key={key}
-                    className={`min-h-[80px] p-2 bg-white dark:bg-slate-900 ${
+                    className={`min-h-[80px] p-2 bg-white dark:bg-slate-900 flex flex-col ${
                       isToday ? "ring-2 ring-blue-500 rounded" : ""
                     }`}
                   >
-                    <Link
-                      href={`/dashboard/appointments/new?date=${key}`}
-                      className="block text-right text-slate-900 dark:text-white font-medium hover:text-blue-600"
-                    >
-                      {d}
-                    </Link>
-                    {count > 0 && (
-                      <span className="block mt-1 text-xs text-blue-600 dark:text-blue-400">
-                        {count} appointment{count > 1 ? "s" : ""}
-                      </span>
-                    )}
+                    <div className="flex justify-between items-start">
+                      <Link
+                        href={`/dashboard/appointments/new?date=${key}`}
+                        className="text-slate-900 dark:text-white font-medium hover:text-blue-600 text-right"
+                        title="Add appointment"
+                      >
+                        {d}
+                      </Link>
+                    </div>
+                    <div className="mt-1 space-y-0.5 overflow-hidden flex-1 min-h-0">
+                      {appointments.slice(0, 3).map((apt, idx) => {
+                        const aptColors = [
+                          "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800/60",
+                          "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-200 dark:hover:bg-indigo-800/60",
+                          "bg-violet-100 dark:bg-violet-900/40 text-violet-800 dark:text-violet-200 hover:bg-violet-200 dark:hover:bg-violet-800/60",
+                        ];
+                        return (
+                          <Link
+                            key={apt.id}
+                            href={`/dashboard/appointments/${apt.id}`}
+                            className={`block text-xs truncate px-1 py-0.5 rounded ${aptColors[idx % aptColors.length]}`}
+                            title={`${apt.title} at ${formatTime(apt.time)}`}
+                          >
+                            {apt.title}
+                          </Link>
+                        );
+                      })}
+                      {tasks.slice(0, 3).map((task) => (
+                        <Link
+                          key={task.id}
+                          href={`/dashboard/tasks?date=${key}`}
+                          className={`block text-xs truncate px-1 py-0.5 rounded ${
+                            task.completed
+                              ? "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 line-through"
+                              : "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-800/60"
+                          }`}
+                          title={task.title}
+                        >
+                          {task.title}
+                        </Link>
+                      ))}
+                      {(appointments.length > 3 || tasks.length > 3) && (
+                        <span className="block text-xs text-slate-500 dark:text-slate-400">
+                          +{appointments.length + tasks.length - 3} more
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}
