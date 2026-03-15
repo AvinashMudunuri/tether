@@ -1,7 +1,13 @@
 import { inngest } from "@/inngest/client";
 import { prisma } from "@/lib/db";
+import { toUtcMs } from "@/lib/datetime";
 
 const DEFAULT_REMINDER_MINUTES = [60, 30, 15];
+
+function getAppointmentUtcMs(appointment: { date: Date; time: string; timezoneOffset: number | null }) {
+  const dateStr = appointment.date.toISOString().slice(0, 10);
+  return toUtcMs(dateStr, appointment.time, appointment.timezoneOffset);
+}
 
 export async function scheduleRemindersForAppointment(appointmentId: string) {
   const appointment = await prisma.appointment.findUnique({
@@ -11,10 +17,7 @@ export async function scheduleRemindersForAppointment(appointmentId: string) {
 
   if (!appointment) return;
 
-  const aptDate = new Date(appointment.date);
-  const [h, m] = appointment.time.split(":").map(Number);
-  aptDate.setHours(h, m, 0, 0);
-  const aptTimeMs = aptDate.getTime();
+  const aptTimeMs = getAppointmentUtcMs(appointment);
 
   const unsentReminders = appointment.reminders.filter((r) => !r.sent);
   const events = unsentReminders
@@ -52,10 +55,7 @@ export async function rescheduleRemindersForAppointment(appointmentId: string) {
     where: { appointmentId, sent: false },
   });
 
-  const aptDate = new Date(appointment.date);
-  const [h, m] = appointment.time.split(":").map(Number);
-  aptDate.setHours(h, m, 0, 0);
-  const aptTimeMs = aptDate.getTime();
+  const aptTimeMs = getAppointmentUtcMs(appointment);
 
   const remindersToCreate = DEFAULT_REMINDER_MINUTES.map((minutesBefore) => ({
     appointmentId,

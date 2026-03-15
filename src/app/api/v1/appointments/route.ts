@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
     title?: string;
     date?: string;
     time?: string;
+    timezoneOffset?: number;
     location?: string;
     attendees?: string;
     notes?: string;
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
     return badRequest("Invalid JSON");
   }
 
-  const { title, date, time, location, attendees, notes, recurrenceType, recurrenceEndDate, reminderMinutes } = body;
+  const { title, date, time, timezoneOffset, location, attendees, notes, recurrenceType, recurrenceEndDate, reminderMinutes } = body;
 
   if (!title?.trim()) return badRequest("Title is required", { title: ["Required"] });
   if (!date) return badRequest("Date is required", { date: ["Required"] });
@@ -106,6 +107,7 @@ export async function POST(request: NextRequest) {
       title: title.trim(),
       date: appointmentDate,
       time: time.trim(),
+      timezoneOffset: typeof timezoneOffset === "number" ? timezoneOffset : null,
       location: location?.trim() || null,
       attendees: attendees?.trim() || null,
       notes: notes?.trim() || null,

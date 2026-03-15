@@ -2,6 +2,11 @@
 
 If appointment reminders are not being sent, work through this checklist.
 
+## Two Ways Reminders Are Sent
+
+1. **Scheduled events** — When you create an appointment, we send `reminder/send` events to Inngest with a `ts` (timestamp). Inngest should run the function at that time.
+2. **Cron fallback** — A cron runs every 5 minutes and processes any due reminders. This works even if scheduled events don't trigger. After deploying, reminders should arrive within 5 minutes of their due time.
+
 ## 1. Vercel Environment Variables
 
 In **Vercel → Project → Settings → Environment Variables**, ensure:

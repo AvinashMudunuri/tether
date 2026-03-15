@@ -75,7 +75,10 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
     const res = await fetch(`/api/v1/appointments/${appointment.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        ...form,
+        timezoneOffset: new Date().getTimezoneOffset(),
+      }),
       credentials: "include",
     });
     setLoading(false);

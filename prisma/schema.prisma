@@ -12,12 +12,13 @@ datasource db {
 }
 
 model Appointment {
-  id         String   @id @default(cuid())
-  userId     String
-  title      String
-  date       DateTime @db.Date
-  time       String
-  location   String?
+  id             String   @id @default(cuid())
+  userId         String
+  title          String
+  date           DateTime @db.Date
+  time           String
+  timezoneOffset Int?     // minutes, from Date.getTimezoneOffset() - used to interpret date+time as user's local
+  location       String?
   attendees  String?
   notes      String?  @db.Text
   recurrenceType    String?

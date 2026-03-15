@@ -35,14 +35,14 @@ export async function PUT(
   });
   if (!existing) return notFound("Appointment not found");
 
-  let body: Partial<{ title: string; date: string; time: string; location: string; attendees: string; notes: string }>;
+  let body: Partial<{ title: string; date: string; time: string; timezoneOffset: number; location: string; attendees: string; notes: string }>;
   try {
     body = await request.json();
   } catch {
     return badRequest("Invalid JSON");
   }
 
-  const { title, date, time, location, attendees, notes } = body;
+  const { title, date, time, timezoneOffset, location, attendees, notes } = body;
 
   const appointment = await prisma.appointment.update({
     where: { id },
@@ -50,6 +50,7 @@ export async function PUT(
       ...(title !== undefined && { title: title.trim() }),
       ...(date !== undefined && { date: new Date(date) }),
       ...(time !== undefined && { time: time.trim() }),
+      ...(timezoneOffset !== undefined && { timezoneOffset: typeof timezoneOffset === "number" ? timezoneOffset : null }),
       ...(location !== undefined && { location: location?.trim() || null }),
       ...(attendees !== undefined && { attendees: attendees?.trim() || null }),
       ...(notes !== undefined && { notes: notes?.trim() || null }),
@@ -57,7 +58,7 @@ export async function PUT(
     include: { checklistItems: true, reminders: true, attachments: true },
   });
 
-  if (date !== undefined || time !== undefined) {
+  if (date !== undefined || time !== undefined || timezoneOffset !== undefined) {
     await rescheduleRemindersForAppointment(id);
   }
 

@@ -62,6 +62,7 @@ export default function NewAppointmentPage() {
         title: form.title,
         date: form.date,
         time: form.time,
+        timezoneOffset: new Date().getTimezoneOffset(),
         location: form.location || undefined,
         attendees: form.attendees || undefined,
         notes: form.notes || undefined,
