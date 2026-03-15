@@ -15,24 +15,31 @@ export const processDueReminders = inngest.createFunction(
   { cron: "*/5 * * * *" },
   async ({ step }) => {
     const now = Date.now();
-    const reminders = await step.run("fetch-due-reminders", async () => {
+    const reminderIds = await step.run("fetch-due-reminders", async () => {
       const all = await prisma.reminder.findMany({
         where: { sent: false },
         include: { appointment: true },
       });
-      return all.filter((r) => {
-        const aptTimeMs = getAppointmentUtcMs(r.appointment);
-        const sendAt = aptTimeMs - r.minutesBefore * 60 * 1000;
-        return sendAt <= now;
-      });
+      return all
+        .filter((r) => {
+          const aptTimeMs = getAppointmentUtcMs(r.appointment);
+          const sendAt = aptTimeMs - r.minutesBefore * 60 * 1000;
+          return sendAt <= now;
+        })
+        .map((r) => r.id);
     });
 
-    for (const reminder of reminders) {
-      await step.run(`send-reminder-${reminder.id}`, async () => {
+    for (const reminderId of reminderIds) {
+      await step.run(`send-reminder-${reminderId}`, async () => {
+        const reminder = await prisma.reminder.findUnique({
+          where: { id: reminderId },
+          include: { appointment: true },
+        });
+        if (!reminder) return { status: "skipped", reason: "not_found" };
         return processReminder(reminder);
       });
     }
-    return { processed: reminders.length };
+    return { processed: reminderIds.length };
   }
 );
 
