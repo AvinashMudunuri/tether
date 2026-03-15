@@ -150,6 +150,7 @@ Auth tests (redirect, login/signup links) run without credentials. Appointments,
 - [Product Requirements (PRD)](docs/PRD.md)
 - [Implementation Plan](docs/IMPLEMENTATION_PLAN.md)
 - [Runbook](docs/RUNBOOK.md)
+- [Inngest Troubleshooting](docs/INNGEST_TROUBLESHOOTING.md) — reminders not working
 
 ## Common Issues
 
@@ -159,4 +160,4 @@ Auth tests (redirect, login/signup links) run without credentials. Appointments,
 | Auth errors | Check Supabase URL/keys; add site URL in Supabase dashboard |
 | Emails not sending | Verify Resend API key; check domain verification |
 | Cron not running | Set `CRON_SECRET` in Vercel; verify `vercel.json` cron config |
-| Reminders not sent | Ensure `SUPABASE_SERVICE_ROLE_KEY` is set |
+| Reminders not sent | See [Inngest Troubleshooting](docs/INNGEST_TROUBLESHOOTING.md); set `INNGEST_DEV=0` in Vercel Production |

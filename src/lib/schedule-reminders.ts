@@ -31,7 +31,12 @@ export async function scheduleRemindersForAppointment(appointmentId: string) {
     .filter(Boolean) as { name: "reminder/send"; data: { reminderId: string }; ts: number; id: string }[];
 
   if (events.length > 0) {
-    await inngest.send(events);
+    try {
+      await inngest.send(events);
+    } catch (err) {
+      console.error("[schedule-reminders] inngest.send failed:", err);
+      throw err;
+    }
   }
 }
 
@@ -79,6 +84,11 @@ export async function rescheduleRemindersForAppointment(appointmentId: string) {
     .filter(Boolean) as { name: "reminder/send"; data: { reminderId: string }; ts: number; id: string }[];
 
   if (events.length > 0) {
-    await inngest.send(events);
+    try {
+      await inngest.send(events);
+    } catch (err) {
+      console.error("[schedule-reminders] inngest.send failed (reschedule):", err);
+      throw err;
+    }
   }
 }
