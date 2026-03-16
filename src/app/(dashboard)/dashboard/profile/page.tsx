@@ -43,7 +43,11 @@ export default async function ProfilePage() {
 
   const name = user.user_metadata?.full_name as string | undefined;
   const initials = getInitials(user);
-  const notificationPrefs = (user.user_metadata?.notification_preferences as { emailReminders?: boolean } | undefined) ?? {};
+  const notificationPrefs = (user.user_metadata?.notification_preferences as {
+    emailReminders?: boolean;
+    whatsappReminders?: boolean;
+    whatsappNumber?: string;
+  } | undefined) ?? {};
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const today = new Date(todayStr + "T00:00:00.000Z");

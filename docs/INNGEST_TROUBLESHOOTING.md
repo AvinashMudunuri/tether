@@ -84,6 +84,15 @@ Reminders are skipped if the user has disabled them:
 3. Check Inngest Dashboard → Runs for a `reminder/send` event
 4. Wait 15 minutes and check your email
 
+## WhatsApp Reminders
+
+If you've enabled WhatsApp reminders in Profile, ensure:
+
+- `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` are set in Vercel
+- `TWILIO_WHATSAPP_NUMBER` is set (e.g. `whatsapp:+14155238886` for sandbox)
+- For testing: use [Twilio WhatsApp Sandbox](https://www.twilio.com/docs/whatsapp/sandbox) and join with your phone
+- Users must enter their WhatsApp number with country code (e.g. +91 9876543210)
+
 ## Summary Checklist
 
 - [ ] `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` set in Vercel

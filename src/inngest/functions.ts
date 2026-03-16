@@ -1,6 +1,7 @@
 import { inngest } from "./client";
 import { prisma } from "@/lib/db";
 import { sendReminderEmail } from "@/lib/email";
+import { sendReminderWhatsApp } from "@/lib/whatsapp";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { toUtcMs } from "@/lib/datetime";
 
@@ -43,6 +44,12 @@ export const processDueReminders = inngest.createFunction(
   }
 );
 
+type NotificationPrefs = {
+  emailReminders?: boolean;
+  whatsappReminders?: boolean;
+  whatsappNumber?: string;
+};
+
 async function processReminder(reminder: {
   id: string;
   appointment: { id: string; userId: string; title: string; date: Date; time: string; location: string | null };
@@ -52,12 +59,12 @@ async function processReminder(reminder: {
   const supabase = createAdminClient();
   const { data: userData } = await supabase.auth.admin.getUserById(apt.userId);
   const email = userData?.user?.email;
-  if (!email) return { status: "skipped", reason: "no_email" };
+  const prefs = (userData?.user?.user_metadata?.notification_preferences as NotificationPrefs | undefined) ?? {};
 
-  const prefs = userData?.user?.user_metadata?.notification_preferences as
-    | { emailReminders?: boolean }
-    | undefined;
-  if (prefs?.emailReminders === false) {
+  const wantEmail = prefs.emailReminders !== false;
+  const wantWhatsApp = prefs.whatsappReminders === true && prefs.whatsappNumber?.trim();
+
+  if (!wantEmail && !wantWhatsApp) {
     await prisma.reminder.update({
       where: { id: reminder.id },
       data: { sent: true, sentAt: new Date() },
@@ -65,21 +72,51 @@ async function processReminder(reminder: {
     return { status: "skipped", reason: "user_disabled" };
   }
 
-  await sendReminderEmail({
-    to: email,
-    subject: `Reminder: ${apt.title}`,
-    appointmentTitle: apt.title,
-    date: formatDate(apt.date),
-    time: formatTime(apt.time),
-    location: apt.location || undefined,
-    appointmentUrl: `${appUrl}/dashboard/appointments/${apt.id}`,
-  });
+  const dateStr = formatDate(apt.date);
+  const timeStr = formatTime(apt.time);
+  const appointmentUrl = `${appUrl}/dashboard/appointments/${apt.id}`;
+  let sent = false;
 
-  await prisma.reminder.update({
-    where: { id: reminder.id },
-    data: { sent: true, sentAt: new Date() },
-  });
-  return { status: "sent" };
+  if (wantEmail && email) {
+    try {
+      await sendReminderEmail({
+        to: email,
+        subject: `Reminder: ${apt.title}`,
+        appointmentTitle: apt.title,
+        date: dateStr,
+        time: timeStr,
+        location: apt.location || undefined,
+        appointmentUrl,
+      });
+      sent = true;
+    } catch (err) {
+      console.error("[processReminder] Email send failed:", err);
+    }
+  }
+
+  if (wantWhatsApp && prefs.whatsappNumber) {
+    try {
+      await sendReminderWhatsApp({
+        to: prefs.whatsappNumber.trim(),
+        appointmentTitle: apt.title,
+        date: dateStr,
+        time: timeStr,
+        location: apt.location || undefined,
+        appointmentUrl,
+      });
+      sent = true;
+    } catch (err) {
+      console.error("[processReminder] WhatsApp send failed:", err);
+    }
+  }
+
+  if (sent) {
+    await prisma.reminder.update({
+      where: { id: reminder.id },
+      data: { sent: true, sentAt: new Date() },
+    });
+  }
+  return { status: sent ? "sent" : "failed" };
 }
 
 function formatDate(d: Date) {
