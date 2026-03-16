@@ -98,35 +98,3 @@ function formatTime(t: string) {
   return `${h12}:${m} ${ampm}`;
 }
 
-// Event-based: triggered by reminder/send (scheduled via inngest.send)
-export const sendReminder = inngest.createFunction(
-  { id: "send-appointment-reminder", retries: 3 },
-  { event: "reminder/send" },
-  async ({ event }) => {
-    const { reminderId } = event.data;
-    const reminder = await prisma.reminder.findUnique({
-      where: { id: reminderId },
-      include: { appointment: true },
-    });
-
-    if (!reminder || !reminder.appointment) {
-      return { status: "skipped", reason: "reminder_or_appointment_not_found" };
-    }
-
-    if (reminder.sent) {
-      return { status: "skipped", reason: "already_sent" };
-    }
-
-    const apt = reminder.appointment;
-    const aptTimeMs = getAppointmentUtcMs(apt);
-    if (aptTimeMs < Date.now()) {
-      await prisma.reminder.update({
-        where: { id: reminderId },
-        data: { sent: true, sentAt: new Date() },
-      });
-      return { status: "skipped", reason: "appointment_past" };
-    }
-
-    return processReminder(reminder);
-  }
-);
