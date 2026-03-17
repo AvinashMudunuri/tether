@@ -180,8 +180,15 @@ export type QuickCaptureParseResult =
   | { type: "task"; title: string; dueDate?: string }
   | { type: "appointment"; title: string; date: string; time: string; datePhrase: string };
 
+function normalizeInput(text: string): string {
+  return text
+    .replaceAll(/\btomorow\b/gi, "tomorrow")
+    .replaceAll(/\btommorow\b/gi, "tomorrow")
+    .replaceAll(/\btommorrow\b/gi, "tomorrow");
+}
+
 export function parseQuickCapture(input: string): QuickCaptureParseResult | null {
-  const trimmed = input.trim();
+  const trimmed = normalizeInput(input.trim());
   if (!trimmed || trimmed.length < 2) return null;
 
   if (!hasDateOrTimeKeywords(trimmed)) {
@@ -204,13 +211,17 @@ export function parseQuickCapture(input: string): QuickCaptureParseResult | null
   };
 }
 
+function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function formatAppointmentPreview(dateStr: string, timeStr: string): string {
   const d = new Date(dateStr + "T12:00:00");
   const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = toLocalDateStr(today);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  const tomorrowStr = toLocalDateStr(tomorrow);
 
   let dateLabel: string;
   if (dateStr === todayStr) dateLabel = "Today";

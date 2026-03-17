@@ -11,6 +11,18 @@ import {
   type QuickCaptureParseResult,
 } from "@/lib/quick-capture-parse";
 
+async function parseWithAI(input: string): Promise<QuickCaptureParseResult | null> {
+  const res = await fetch("/api/v1/parse-quick-capture", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ input }),
+    credentials: "include",
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as QuickCaptureParseResult;
+  return data;
+}
+
 type SearchResult = {
   tasks: { id: string; title: string; dueDate: string | null; status: string; type: string }[];
   appointments: { id: string; title: string; date: string; time: string; type: string }[];
@@ -36,9 +48,9 @@ export function QuickCaptureBar() {
     }
     const timer = setTimeout(async () => {
       setLoading(true);
-      const [searchRes, parsed] = await Promise.all([
+      const [searchRes, aiParsed] = await Promise.all([
         fetch(`/api/v1/search?q=${encodeURIComponent(query)}`, { credentials: "include" }),
-        Promise.resolve(parseQuickCapture(query)),
+        parseWithAI(query),
       ]);
       if (searchRes.ok) {
         const data = await searchRes.json();
@@ -46,7 +58,7 @@ export function QuickCaptureBar() {
       } else {
         setSearchResults(null);
       }
-      setParseResult(parsed);
+      setParseResult(aiParsed ?? parseQuickCapture(query));
       setLoading(false);
     }, 200);
     return () => clearTimeout(timer);
