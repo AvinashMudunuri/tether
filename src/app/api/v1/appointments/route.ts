@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { getAuthUser, unauthorized, badRequest } from "@/lib/api-auth";
 import { expandRecurringAppointments } from "@/lib/recurrence";
 import { scheduleRemindersForAppointment } from "@/lib/schedule-reminders";
+import type { ReminderType } from "@/lib/reminders";
+import { logger } from "@/lib/logger";
 
 export async function GET(request: NextRequest) {
   const user = await getAuthUser();
@@ -61,11 +63,11 @@ export async function GET(request: NextRequest) {
   return Response.json(appointments);
 }
 
+const VALID_REMINDER_TYPES = ["2_day", "1_day", "1_hour", "30_min", "15_min"] as const;
+
 export async function POST(request: NextRequest) {
   const user = await getAuthUser();
   if (!user) return unauthorized();
-
-  const REMINDER_OPTIONS = [1440, 120, 60, 30, 15];
 
   let body: {
     title?: string;
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest) {
     notes?: string;
     recurrenceType?: string;
     recurrenceEndDate?: string;
-    reminderMinutes?: number[];
+    reminderTypes?: string[];
   };
   try {
     body = await request.json();
@@ -85,7 +87,7 @@ export async function POST(request: NextRequest) {
     return badRequest("Invalid JSON");
   }
 
-  const { title, date, time, timezoneOffset, location, attendees, notes, recurrenceType, recurrenceEndDate, reminderMinutes } = body;
+  const { title, date, time, timezoneOffset, location, attendees, notes, recurrenceType, recurrenceEndDate, reminderTypes: bodyTypes } = body;
 
   if (!title?.trim()) return badRequest("Title is required", { title: ["Required"] });
   if (!date) return badRequest("Date is required", { date: ["Required"] });
@@ -95,10 +97,10 @@ export async function POST(request: NextRequest) {
     ? recurrenceType
     : null;
 
-  const validReminderMinutes = Array.isArray(reminderMinutes)
-    ? reminderMinutes.filter((m) => REMINDER_OPTIONS.includes(m))
-    : [60, 30, 15];
-  const uniqueMinutes = Array.from(new Set(validReminderMinutes)).sort((a, b) => b - a);
+  const validReminderTypes = Array.isArray(bodyTypes)
+    ? bodyTypes.filter((t): t is ReminderType => VALID_REMINDER_TYPES.includes(t as ReminderType))
+    : (["1_hour", "30_min", "15_min"] as ReminderType[]);
+  const uniqueTypes = Array.from(new Set(validReminderTypes));
 
   const appointmentDate = new Date(date);
   const appointment = await prisma.appointment.create({
@@ -115,14 +117,27 @@ export async function POST(request: NextRequest) {
       recurrenceEndDate: validRecurrence && recurrenceEndDate
         ? new Date(recurrenceEndDate)
         : null,
-      reminders: {
-        create: uniqueMinutes.map((minutesBefore) => ({ minutesBefore })),
-      },
     },
     include: { checklistItems: true, reminders: true, attachments: true },
   });
 
-  await scheduleRemindersForAppointment(appointment.id);
+  logger.info("appointment.created", {
+    appointmentId: appointment.id,
+    userId: user.id,
+    reminderTypes: uniqueTypes,
+  });
+  await scheduleRemindersForAppointment(
+    appointment.id,
+    uniqueTypes,
+    date,
+    time.trim(),
+    typeof timezoneOffset === "number" ? timezoneOffset : null
+  );
 
-  return Response.json(appointment, { status: 201 });
+  const withReminders = await prisma.appointment.findUnique({
+    where: { id: appointment.id },
+    include: { checklistItems: true, reminders: true, attachments: true },
+  });
+
+  return Response.json(withReminders ?? appointment, { status: 201 });
 }

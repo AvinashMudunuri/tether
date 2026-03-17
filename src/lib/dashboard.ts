@@ -9,14 +9,16 @@ function getTodayDateString() {
 export async function getDashboardData(userId: string) {
   const todayStr = getTodayDateString();
   const todayStart = new Date(todayStr + "T00:00:00.000Z");
+  const todayEnd = new Date(todayStr + "T23:59:59.999Z");
   const nextWeekEnd = new Date(todayStart);
   nextWeekEnd.setDate(nextWeekEnd.getDate() + 7);
   nextWeekEnd.setHours(23, 59, 59, 999);
 
-  const [rawAppointments, tasks] = await Promise.all([
+  const [rawAppointments, missedAppointments, tasks] = await Promise.all([
     prisma.appointment.findMany({
       where: {
         userId,
+        status: "scheduled",
         OR: [
           {
             recurrenceType: null,
@@ -35,8 +37,14 @@ export async function getDashboardData(userId: string) {
       include: { checklistItems: true },
       orderBy: [{ date: "asc" }, { time: "asc" }],
     }),
+    prisma.appointment.findMany({
+      where: { userId, status: "missed" },
+      include: { checklistItems: true },
+      orderBy: [{ date: "desc" }, { time: "desc" }],
+      take: 10,
+    }),
     prisma.task.findMany({
-      where: { userId },
+      where: { userId, status: { not: "cancelled" } },
       orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
     }),
   ]);
@@ -60,5 +68,36 @@ export async function getDashboardData(userId: string) {
     .filter((a) => a.date >= todayStr)
     .slice(0, 10);
 
-  return { todaysAppointments, upcomingAppointments, tasks };
+  const overdueTasks = tasks.filter(
+    (t) =>
+      t.status !== "completed" &&
+      t.status !== "cancelled" &&
+      t.dueDate &&
+      t.dueDate < todayStart
+  );
+
+  const todaysTasks = tasks.filter(
+    (t) =>
+      t.dueDate &&
+      t.dueDate >= todayStart &&
+      t.dueDate <= todayEnd &&
+      t.status !== "cancelled"
+  );
+
+  const completedTodayCount = tasks.filter(
+    (t) =>
+      t.status === "completed" &&
+      t.updatedAt >= todayStart &&
+      t.updatedAt <= todayEnd
+  ).length;
+
+  return {
+    todaysAppointments,
+    upcomingAppointments,
+    missedAppointments,
+    tasks,
+    overdueTasks,
+    todaysTasks,
+    completedTodayCount,
+  };
 }

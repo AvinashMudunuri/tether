@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { UserMenu } from "@/components/user-menu";
 import { DashboardNav } from "@/components/dashboard-nav";
-import { SearchBar } from "@/components/search-bar";
+import { QuickCaptureBar } from "@/components/quick-capture-bar";
+import { NotificationOnboardingModal } from "@/components/notification-onboarding-modal";
+import { shouldShowNotificationOnboarding } from "@/lib/notification-onboarding";
 
 export default async function DashboardLayout({
   children,
@@ -46,7 +48,7 @@ export default async function DashboardLayout({
               </span>
             </Link>
             <DashboardNav />
-            <SearchBar />
+            <QuickCaptureBar />
           </div>
           <UserMenu user={user} signOut={signOut} />
         </div>
@@ -55,6 +57,12 @@ export default async function DashboardLayout({
       <main id="main-content" className="max-w-6xl mx-auto px-4 py-8" role="main">
         {children}
       </main>
+
+      <NotificationOnboardingModal
+        show={shouldShowNotificationOnboarding(
+          user.user_metadata?.notification_preferences
+        )}
+      />
     </div>
   );
 }

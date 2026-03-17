@@ -2,14 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, MessageCircle } from "lucide-react";
+import { Bell, MessageSquare, Smartphone } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { useFirebasePush } from "@/hooks/use-firebase-push";
 
 type NotificationPrefs = {
   emailReminders?: boolean;
+  smsReminders?: boolean;
+  smsNumber?: string;
   whatsappReminders?: boolean;
   whatsappNumber?: string;
+  pushNotifications?: boolean;
+  fcmToken?: string;
 };
 
 export function ProfileNotificationSettings({
@@ -18,30 +23,44 @@ export function ProfileNotificationSettings({
   initialPrefs: NotificationPrefs;
 }) {
   const router = useRouter();
+  const { requestToken, loading: pushLoading, error: pushError } = useFirebasePush();
   const [emailReminders, setEmailReminders] = useState(
     initialPrefs.emailReminders ?? true
   );
-  const [whatsappReminders, setWhatsappReminders] = useState(
-    initialPrefs.whatsappReminders ?? false
+  const [smsReminders, setSmsReminders] = useState(
+    initialPrefs.smsReminders ?? initialPrefs.whatsappReminders ?? false
   );
-  const [whatsappNumber, setWhatsappNumber] = useState(
-    initialPrefs.whatsappNumber ?? ""
+  const [smsNumber, setSmsNumber] = useState(
+    initialPrefs.smsNumber ?? initialPrefs.whatsappNumber ?? ""
   );
+  const [pushNotifications, setPushNotifications] = useState(
+    initialPrefs.pushNotifications ?? false
+  );
+  const [fcmToken, setFcmToken] = useState(initialPrefs.fcmToken ?? "");
   const [loading, setLoading] = useState(false);
 
-  async function handleSave() {
-    if (whatsappReminders && !whatsappNumber.trim()) {
-      toast.error("WhatsApp number is required for WhatsApp reminders");
-      return;
+  async function handleEnablePush() {
+    const token = await requestToken();
+    if (token) {
+      setFcmToken(token);
+      setPushNotifications(true);
+      await savePrefs(true, token);
+    } else if (pushError) {
+      toast.error(pushError);
     }
+  }
+
+  async function savePrefs(push: boolean, token: string) {
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.updateUser({
       data: {
         notification_preferences: {
           emailReminders,
-          whatsappReminders,
-          whatsappNumber: whatsappReminders ? whatsappNumber.trim() : "",
+          smsReminders,
+          smsNumber: smsReminders ? smsNumber.trim() : "",
+          pushNotifications: push,
+          fcmToken: push ? token : "",
         },
       },
     });
@@ -51,6 +70,61 @@ export function ProfileNotificationSettings({
     } else {
       toast.success("Notification settings saved");
       router.refresh();
+    }
+  }
+
+  async function handleSave() {
+    if (smsReminders && !smsNumber.trim()) {
+      toast.error("Phone number is required for SMS reminders");
+      return;
+    }
+    setLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        notification_preferences: {
+          emailReminders,
+          smsReminders,
+          smsNumber: smsReminders ? smsNumber.trim() : "",
+          pushNotifications,
+          fcmToken: pushNotifications ? fcmToken : "",
+        },
+      },
+    });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Notification settings saved");
+      router.refresh();
+    }
+  }
+
+  async function handlePushToggle(checked: boolean) {
+    if (checked) {
+      await handleEnablePush();
+    } else {
+      setPushNotifications(false);
+      setFcmToken("");
+      setLoading(true);
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({
+      data: {
+        notification_preferences: {
+          emailReminders,
+          smsReminders,
+          smsNumber: smsReminders ? smsNumber.trim() : "",
+          pushNotifications: false,
+          fcmToken: "",
+        },
+      },
+      });
+      setLoading(false);
+      if (error) toast.error(error.message);
+      else {
+        toast.success("Push notifications disabled");
+        router.refresh();
+      }
     }
   }
 
@@ -80,26 +154,43 @@ export function ProfileNotificationSettings({
         <label className="flex items-center gap-3 cursor-pointer">
           <input
             type="checkbox"
-            checked={whatsappReminders}
-            onChange={(e) => setWhatsappReminders(e.target.checked)}
+            checked={smsReminders}
+            onChange={(e) => setSmsReminders(e.target.checked)}
             className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
           />
           <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-            <MessageCircle className="w-4 h-4 text-green-600" aria-hidden />
-            WhatsApp reminders
+            <MessageSquare className="w-4 h-4 text-slate-600" aria-hidden />
+            SMS reminders
           </span>
         </label>
-        {whatsappReminders && (
+        {smsReminders && (
           <input
             type="tel"
-            value={whatsappNumber}
-            onChange={(e) => setWhatsappNumber(e.target.value)}
+            value={smsNumber}
+            onChange={(e) => setSmsNumber(e.target.value)}
             placeholder="+91 9876543210"
             className="ml-7 w-full max-w-xs px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            aria-label="WhatsApp number with country code"
+            aria-label="Phone number with country code"
           />
         )}
       </div>
+
+      <label className="flex items-center gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={pushNotifications}
+          onChange={(e) => handlePushToggle(e.target.checked)}
+          disabled={pushLoading || loading}
+          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+        />
+        <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+          <Smartphone className="w-4 h-4 text-blue-600" aria-hidden />
+          Push notifications (browser)
+        </span>
+      </label>
+      {pushLoading && (
+        <p className="text-sm text-slate-500">Requesting permission…</p>
+      )}
 
       <button
         onClick={handleSave}

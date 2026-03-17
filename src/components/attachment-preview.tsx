@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Trash2, Image } from "lucide-react";
+import Image from "next/image";
+import { Trash2, Image as ImageIcon } from "lucide-react";
 
 type Attachment = {
   id: string;
@@ -48,17 +49,19 @@ export function AttachmentPreview({
 
   return (
     <div className="group relative flex flex-col rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50 dark:bg-slate-800/50">
-      <div className="aspect-square w-24 min-w-24 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+      <div className="relative aspect-square w-24 min-w-24 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
         {loading ? (
           <div className="animate-pulse w-12 h-12 rounded bg-slate-200 dark:bg-slate-700" />
         ) : isImage && url ? (
-          <img
+          <Image
             src={url}
             alt={attachment.fileName}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            unoptimized
           />
         ) : (
-          <Image className="w-8 h-8 text-slate-400" aria-hidden />
+          <ImageIcon className="w-8 h-8 text-slate-400" aria-hidden />
         )}
       </div>
       <div className="p-2 min-w-0">

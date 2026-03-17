@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, CalendarPlus } from "lucide-react";
 import { toast } from "sonner";
+import { REMINDER_TYPES, getValidReminderTypes, type ReminderType } from "@/lib/reminders";
 
 function getDefaultDate() {
   const d = new Date();
@@ -23,13 +24,6 @@ export default function NewAppointmentPage() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const REMINDER_OPTIONS = [
-    { value: 1440, label: "1 day before" },
-    { value: 120, label: "2 hours before" },
-    { value: 60, label: "1 hour before" },
-    { value: 30, label: "30 minutes before" },
-    { value: 15, label: "15 minutes before" },
-  ] as const;
 
   const [form, setForm] = useState({
     title: "",
@@ -40,8 +34,13 @@ export default function NewAppointmentPage() {
     notes: "",
     recurrenceType: "none" as "none" | "weekly" | "monthly",
     recurrenceEndDate: "",
-    reminderMinutes: [60, 30, 15] as number[],
+    reminderTypes: ["1_hour", "30_min", "15_min"] as ReminderType[],
   });
+
+  const validTypes = useMemo(
+    () => getValidReminderTypes(form.date, form.time, new Date().getTimezoneOffset()),
+    [form.date, form.time]
+  );
 
   useEffect(() => {
     const dateParam = searchParams.get("date");
@@ -68,7 +67,7 @@ export default function NewAppointmentPage() {
         notes: form.notes || undefined,
         recurrenceType: form.recurrenceType !== "none" ? form.recurrenceType : undefined,
         recurrenceEndDate: form.recurrenceEndDate || undefined,
-        reminderMinutes: form.reminderMinutes,
+        reminderTypes: form.reminderTypes,
       }),
       credentials: "include",
     });
@@ -174,27 +173,43 @@ export default function NewAppointmentPage() {
             Remind me
           </label>
           <div className="flex flex-wrap gap-2">
-            {REMINDER_OPTIONS.map(({ value, label }) => (
-              <label
-                key={value}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/20"
-              >
-                <input
-                  type="checkbox"
-                  checked={form.reminderMinutes.includes(value)}
-                  onChange={(e) => {
-                    setForm((f) => ({
-                      ...f,
-                      reminderMinutes: e.target.checked
-                        ? [...f.reminderMinutes, value].sort((a, b) => b - a)
-                        : f.reminderMinutes.filter((m) => m !== value),
-                    }));
-                  }}
-                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-slate-700 dark:text-slate-300">{label}</span>
-              </label>
-            ))}
+            {REMINDER_TYPES.map(({ type, label }) => {
+              const isValid = validTypes.includes(type);
+              return (
+                <label
+                  key={type}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                    isValid
+                      ? "border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/20"
+                      : "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed opacity-60"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={form.reminderTypes.includes(type)}
+                    disabled={!isValid}
+                    onChange={(e) => {
+                      if (!isValid) return;
+                      setForm((f) => ({
+                        ...f,
+                        reminderTypes: e.target.checked
+                          ? [...f.reminderTypes, type].sort(
+                              (a, b) =>
+                                REMINDER_TYPES.findIndex((r) => r.type === b) -
+                                REMINDER_TYPES.findIndex((r) => r.type === a)
+                            )
+                          : f.reminderTypes.filter((t) => t !== type),
+                      }));
+                    }}
+                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                    {label}
+                    {!isValid && " (past)"}
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </div>
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Users, Pencil, Trash2, Plus, Paperclip } from "lucide-react";
+import { MapPin, Users, Trash2, Plus, Paperclip, Check, X, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { AttachmentPreview } from "@/components/attachment-preview";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -19,6 +19,7 @@ type Appointment = {
   title: string;
   date: string;
   time: string;
+  status: string;
   location: string | null;
   attendees: string | null;
   notes: string | null;
@@ -103,6 +104,21 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
       router.refresh();
     } else {
       toast.error("Failed to delete appointment");
+    }
+  }
+
+  async function updateStatus(status: string) {
+    const res = await fetch(`/api/v1/appointments/${appointment.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+      credentials: "include",
+    });
+    if (res.ok) {
+      toast.success(status === "completed" ? "Marked as completed" : "Appointment cancelled");
+      router.refresh();
+    } else {
+      toast.error("Failed to update");
     }
   }
 
@@ -275,9 +291,24 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
           </div>
         ) : (
           <>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              {appointment.title}
-            </h1>
+            <div className="flex items-start justify-between gap-4">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                {appointment.title}
+              </h1>
+              <span
+                className={`shrink-0 px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
+                  appointment.status === "completed"
+                    ? "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200"
+                    : appointment.status === "missed"
+                      ? "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200"
+                      : appointment.status === "cancelled"
+                        ? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                        : "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200"
+                }`}
+              >
+                {appointment.status}
+              </span>
+            </div>
             <p className="mt-2 text-slate-600 dark:text-slate-400">
               {new Date(appointment.date).toLocaleDateString("en-US", {
                 weekday: "long",
@@ -402,14 +433,38 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
               )}
             </div>
 
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 flex flex-wrap gap-3">
+              {(appointment.status === "scheduled" || appointment.status === "missed") && (
+                <button
+                  onClick={() => updateStatus("completed")}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                  aria-label="Mark completed"
+                >
+                  <Check className="w-4 h-4" aria-hidden />
+                  Mark completed
+                </button>
+              )}
+              {appointment.status === "scheduled" && (
+                <button
+                  onClick={() => updateStatus("cancelled")}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  aria-label="Cancel appointment"
+                >
+                  <X className="w-4 h-4" aria-hidden />
+                  Cancel
+                </button>
+              )}
               <button
                 onClick={() => setEditing(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                aria-label="Edit appointment"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  appointment.status === "scheduled" || appointment.status === "missed"
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                }`}
+                aria-label={appointment.status === "scheduled" || appointment.status === "missed" ? "Reschedule appointment" : "Edit appointment"}
               >
-                <Pencil className="w-4 h-4" aria-hidden />
-                Edit
+                <Calendar className="w-4 h-4" aria-hidden />
+                {appointment.status === "scheduled" || appointment.status === "missed" ? "Reschedule" : "Edit"}
               </button>
               <button
                 onClick={() => setDeleteConfirmOpen(true)}

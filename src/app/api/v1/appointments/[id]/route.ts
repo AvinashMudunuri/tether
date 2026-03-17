@@ -35,14 +35,16 @@ export async function PUT(
   });
   if (!existing) return notFound("Appointment not found");
 
-  let body: Partial<{ title: string; date: string; time: string; timezoneOffset: number; location: string; attendees: string; notes: string }>;
+  const VALID_STATUS = ["scheduled", "completed", "missed", "cancelled"] as const;
+
+  let body: Partial<{ title: string; date: string; time: string; timezoneOffset: number; location: string; attendees: string; notes: string; status: string }>;
   try {
     body = await request.json();
   } catch {
     return badRequest("Invalid JSON");
   }
 
-  const { title, date, time, timezoneOffset, location, attendees, notes } = body;
+  const { title, date, time, timezoneOffset, location, attendees, notes, status } = body;
 
   const appointment = await prisma.appointment.update({
     where: { id },
@@ -54,6 +56,7 @@ export async function PUT(
       ...(location !== undefined && { location: location?.trim() || null }),
       ...(attendees !== undefined && { attendees: attendees?.trim() || null }),
       ...(notes !== undefined && { notes: notes?.trim() || null }),
+      ...(status !== undefined && VALID_STATUS.includes(status as (typeof VALID_STATUS)[number]) && { status }),
     },
     include: { checklistItems: true, reminders: true, attachments: true },
   });

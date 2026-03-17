@@ -13,7 +13,7 @@ const MONTHS = [
 ];
 
 type AppointmentItem = { id: string; title: string; time: string; date: string };
-type TaskItem = { id: string; title: string; dueDate: string | null; completed: boolean };
+type TaskItem = { id: string; title: string; dueDate: string | null; status: string };
 
 function getMonthDays(year: number, month: number) {
   const first = new Date(year, month, 1);
@@ -91,7 +91,7 @@ export default function CalendarPage() {
           id: t.id,
           title: t.title,
           dueDate: t.dueDate,
-          completed: t.completed,
+          status: t.status,
         });
       }
     }
@@ -249,37 +249,38 @@ export default function CalendarPage() {
                       </Link>
                     </div>
                     <div className="mt-1 space-y-0.5 overflow-hidden flex-1 min-h-0">
-                      {appointments.slice(0, 3).map((apt, idx) => {
-                        const aptColors = [
-                          "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800/60",
-                          "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-200 dark:hover:bg-indigo-800/60",
-                          "bg-violet-100 dark:bg-violet-900/40 text-violet-800 dark:text-violet-200 hover:bg-violet-200 dark:hover:bg-violet-800/60",
-                        ];
+                      {appointments.slice(0, 3).map((apt) => (
+                        <Link
+                          key={apt.id}
+                          href={`/dashboard/appointments/${apt.id}`}
+                          className="block text-xs truncate px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800/60"
+                          title={`${apt.title} at ${formatTime(apt.time)}`}
+                        >
+                          {apt.title}
+                        </Link>
+                      ))}
+                      {tasks.slice(0, 3).map((task) => {
+                        const isOverdue =
+                          task.status !== "completed" &&
+                          task.dueDate &&
+                          task.dueDate.slice(0, 10) < todayKey;
                         return (
                           <Link
-                            key={apt.id}
-                            href={`/dashboard/appointments/${apt.id}`}
-                            className={`block text-xs truncate px-1 py-0.5 rounded ${aptColors[idx % aptColors.length]}`}
-                            title={`${apt.title} at ${formatTime(apt.time)}`}
+                            key={task.id}
+                            href={`/dashboard/tasks?date=${key}`}
+                            className={`block text-xs truncate px-1 py-0.5 rounded ${
+                              task.status === "completed"
+                                ? "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 line-through"
+                                : isOverdue
+                                  ? "bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
+                                  : "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-800/60"
+                            }`}
+                            title={task.title}
                           >
-                            {apt.title}
+                            {task.title}
                           </Link>
                         );
                       })}
-                      {tasks.slice(0, 3).map((task) => (
-                        <Link
-                          key={task.id}
-                          href={`/dashboard/tasks?date=${key}`}
-                          className={`block text-xs truncate px-1 py-0.5 rounded ${
-                            task.completed
-                              ? "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 line-through"
-                              : "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-800/60"
-                          }`}
-                          title={task.title}
-                        >
-                          {task.title}
-                        </Link>
-                      ))}
                       {(appointments.length > 3 || tasks.length > 3) && (
                         <span className="block text-xs text-slate-500 dark:text-slate-400">
                           +{appointments.length + tasks.length - 3} more

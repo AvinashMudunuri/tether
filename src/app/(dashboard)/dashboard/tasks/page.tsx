@@ -19,7 +19,7 @@ type Task = {
   id: string;
   title: string;
   dueDate: string | null;
-  completed: boolean;
+  status: string;
   notes: string | null;
   attachments?: TaskAttachment[];
 };
@@ -27,10 +27,14 @@ type Task = {
 export default function TasksPage() {
   const searchParams = useSearchParams();
   const dateParam = searchParams.get("date");
+  const filterParam = searchParams.get("filter");
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [filter, setFilter] = useState<"all" | "pending" | "completed">("all");
+  const [filter, setFilter] = useState<"all" | "overdue" | "pending" | "completed">(
+    (filterParam === "overdue" || filterParam === "pending" || filterParam === "completed" ? filterParam : "all") as "all" | "overdue" | "pending" | "completed"
+  );
   const [newTitle, setNewTitle] = useState("");
   const [newDueDate, setNewDueDate] = useState("");
+  const [adding, setAdding] = useState(false);
   const [loading, setLoading] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
@@ -61,18 +65,47 @@ export default function TasksPage() {
     fetchTasks();
   }, []);
 
+  useEffect(() => {
+    if (filterParam === "overdue" || filterParam === "pending" || filterParam === "completed") {
+      setFilter(filterParam);
+    }
+  }, [filterParam]);
+
   const addTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    const input = newTitle.trim();
+    if (!input) return;
+
+    setAdding(true);
+    let title = input;
+    let dueDate = newDueDate || undefined;
+    let dueTime: string | undefined;
+
+    try {
+      const parseRes = await fetch("/api/v1/parse-task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input }),
+        credentials: "include",
+      });
+      if (parseRes.ok) {
+        const parsed = await parseRes.json();
+        title = parsed.title;
+        dueDate = parsed.dueDate ?? dueDate;
+        dueTime = parsed.dueTime;
+      }
+    } catch {
+      // Fallback to raw input
+    }
+
     const res = await fetch("/api/v1/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: newTitle.trim(),
-        dueDate: newDueDate || undefined,
-      }),
+      body: JSON.stringify({ title, dueDate, dueTime }),
       credentials: "include",
     });
+    setAdding(false);
+
     if (res.ok) {
       setNewTitle("");
       setNewDueDate("");
@@ -83,16 +116,21 @@ export default function TasksPage() {
     }
   };
 
-  const toggleTask = async (id: string, completed: boolean) => {
+  const toggleTask = async (id: string, status: "pending" | "completed") => {
+    const wasCompleted = tasks.find((t) => t.id === id)?.status === "completed";
     await fetch(`/api/v1/tasks/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed }),
+      body: JSON.stringify({ status }),
       credentials: "include",
     });
     setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed } : t))
+      prev.map((t) => (t.id === id ? { ...t, status } : t))
     );
+    if (status === "completed" && !wasCompleted) {
+      const completedCount = tasks.filter((t) => t.status === "completed").length + 1;
+      toast.success(`Nice work 🎉 ${completedCount} task${completedCount === 1 ? "" : "s"} completed today`);
+    }
   };
 
   const updateTaskDueDate = async (id: string, dueDate: string | null) => {
@@ -191,6 +229,13 @@ export default function TasksPage() {
     }
   };
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isOverdue = (t: Task) =>
+    t.status !== "completed" &&
+    t.status !== "cancelled" &&
+    t.dueDate &&
+    t.dueDate.slice(0, 10) < todayStr;
+
   const dateFiltered = dateParam
     ? tasks.filter((t) => t.dueDate && t.dueDate.slice(0, 10) === dateParam)
     : tasks;
@@ -198,9 +243,25 @@ export default function TasksPage() {
   const filtered =
     filter === "all"
       ? dateFiltered
-      : filter === "pending"
-        ? dateFiltered.filter((t) => !t.completed)
-        : dateFiltered.filter((t) => t.completed);
+      : filter === "overdue"
+        ? dateFiltered.filter(isOverdue)
+        : filter === "pending"
+          ? dateFiltered.filter((t) => t.status !== "completed" && t.status !== "cancelled" && !isOverdue(t))
+          : dateFiltered.filter((t) => t.status === "completed");
+
+  function formatDueLabel(dueDate: string) {
+    const d = dueDate.slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+    if (d === today) return "today";
+    if (d === yesterdayStr) return "yesterday";
+    return new Date(d + "T12:00:00").toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  }
 
   const dateLabel = dateParam
     ? new Date(dateParam + "T12:00:00").toLocaleDateString("en-US", {
@@ -248,8 +309,9 @@ export default function TasksPage() {
               type="text"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="Add a task..."
-              className="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
+              placeholder="Add a task... (e.g. Pay electricity bill tomorrow 7pm)"
+              disabled={adding}
+              className="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none disabled:opacity-60"
               aria-label="Task title"
             />
             <input
@@ -261,21 +323,21 @@ export default function TasksPage() {
             />
             <button
               type="submit"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              disabled={adding}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60"
               aria-label="Add task"
             >
               <Plus className="w-4 h-4" aria-hidden />
-              Add
+              {adding ? "Adding…" : "Add"}
             </button>
           </div>
         </form>
 
         <div
-          className="flex gap-2 mb-4"
-          role="group"
+          className="flex flex-wrap gap-2 mb-4"
           aria-label="Filter tasks"
         >
-          {(["all", "pending", "completed"] as const).map((f) => (
+          {(["all", "overdue", "pending", "completed"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -314,26 +376,35 @@ export default function TasksPage() {
                 >
                   <div className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <button
-                      onClick={() => toggleTask(task.id, !task.completed)}
+                      onClick={() =>
+                        toggleTask(task.id, task.status === "completed" ? "pending" : "completed")
+                      }
                       className={`flex-shrink-0 w-5 h-5 rounded border flex items-center justify-center ${
-                        task.completed
+                        task.status === "completed"
                           ? "bg-green-500 border-green-500 text-white"
                           : "border-slate-400"
                       }`}
-                      aria-label={task.completed ? "Mark incomplete" : "Mark complete"}
+                      aria-label={task.status === "completed" ? "Mark incomplete" : "Mark complete"}
                     >
-                      {task.completed && "✓"}
+                      {task.status === "completed" && "✓"}
                     </button>
                     <div className="flex-1 min-w-0">
                       <span
                         className={
-                          task.completed
+                          task.status === "completed"
                             ? "text-slate-500 dark:text-slate-400 line-through"
-                            : "text-slate-900 dark:text-white"
+                            : isOverdue(task)
+                              ? "text-red-600 dark:text-red-400 font-medium"
+                              : "text-slate-900 dark:text-white"
                         }
                       >
                         {task.title}
                       </span>
+                      {isOverdue(task) && (
+                        <span className="block text-xs text-red-600 dark:text-red-400 mt-0.5">
+                          Due {task.dueDate ? formatDueLabel(task.dueDate) : "overdue"}
+                        </span>
+                      )}
                       <div className="flex items-center gap-2 mt-0.5">
                         <input
                           type="date"

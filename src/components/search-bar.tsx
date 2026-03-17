@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Search, X } from "lucide-react";
 
 type SearchResult = {
-  tasks: { id: string; title: string; dueDate: string | null; completed: boolean; type: string }[];
+  tasks: { id: string; title: string; dueDate: string | null; status: string; type: string }[];
   appointments: { id: string; title: string; date: string; time: string; type: string }[];
 };
 
@@ -100,7 +100,7 @@ export function SearchBar() {
                       className="block px-2 py-2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-sm text-slate-900 dark:text-white"
                       role="option"
                     >
-                      <span className={t.completed ? "line-through text-slate-500" : ""}>{t.title}</span>
+                      <span className={t.status === "completed" ? "line-through text-slate-500" : ""}>{t.title}</span>
                       {t.dueDate && (
                         <span className="ml-2 text-xs text-slate-400">
                           {new Date(t.dueDate).toLocaleDateString()}

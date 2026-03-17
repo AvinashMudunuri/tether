@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     prisma.task.findMany({
       where: {
         userId: user.id,
+        status: { not: "cancelled" },
         OR: [
           { title: { contains: q, mode: "insensitive" } },
           { notes: { not: null, contains: q, mode: "insensitive" } },
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
       id: t.id,
       title: t.title,
       dueDate: t.dueDate,
-      completed: t.completed,
+      status: t.status,
       type: "task",
     })),
     appointments: appointments.map((a) => ({

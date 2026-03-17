@@ -23,6 +23,7 @@ model Appointment {
   notes      String?  @db.Text
   recurrenceType    String?
   recurrenceEndDate DateTime? @db.Date
+  status       String   @default("scheduled") // scheduled | completed | missed | cancelled
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -36,7 +37,7 @@ model Task {
   userId    String
   title     String
   dueDate   DateTime? @db.Date
-  completed Boolean  @default(false)
+  status    String   @default("pending") // pending | completed | cancelled (overdue = pending + dueDate < today)
   notes     String?  @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -57,9 +58,13 @@ model ChecklistItem {
 model Reminder {
   id            String    @id @default(cuid())
   appointmentId String
-  minutesBefore Int
+  type          String    // 2_day, 1_day, 1_hour, 30_min, 15_min
+  reminderTime  DateTime  // exact UTC time to send
   sent          Boolean   @default(false)
   sentAt        DateTime?
+  emailSent     Boolean   @default(false)
+  smsSent       Boolean   @default(false)
+  pushSent      Boolean   @default(false)
 
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 }

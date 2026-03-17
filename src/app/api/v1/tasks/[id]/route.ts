@@ -16,21 +16,23 @@ export async function PUT(
   });
   if (!existing) return notFound("Task not found");
 
-  let body: Partial<{ title: string; dueDate: string; completed: boolean; notes: string }>;
+  const VALID_STATUS = ["pending", "completed", "cancelled"] as const;
+
+  let body: Partial<{ title: string; dueDate: string; status: string; notes: string }>;
   try {
     body = await request.json();
   } catch {
     return badRequest("Invalid JSON");
   }
 
-  const { title, dueDate, completed, notes } = body;
+  const { title, dueDate, status, notes } = body;
 
   const task = await prisma.task.update({
     where: { id },
     data: {
       ...(title !== undefined && { title: title.trim() }),
       ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
-      ...(completed !== undefined && { completed }),
+      ...(status !== undefined && VALID_STATUS.includes(status as (typeof VALID_STATUS)[number]) && { status }),
       ...(notes !== undefined && { notes: notes?.trim() || null }),
     },
   });

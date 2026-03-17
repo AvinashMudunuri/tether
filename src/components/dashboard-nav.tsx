@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Calendar, CheckSquare, Menu, X } from "lucide-react";
+import { LayoutDashboard, Calendar, CalendarCheck, CheckSquare, Menu, X } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/calendar", label: "Calendar", icon: Calendar },
+  { href: "/dashboard/appointments", label: "Appointments", icon: CalendarCheck },
   { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
 ] as const;
 

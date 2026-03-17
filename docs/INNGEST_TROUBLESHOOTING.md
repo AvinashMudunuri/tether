@@ -2,10 +2,33 @@
 
 If appointment reminders are not being sent, work through this checklist.
 
-## Two Ways Reminders Are Sent
+## How Reminders Work
 
-1. **Scheduled events** — When you create an appointment, we send `reminder/send` events to Inngest with a `ts` (timestamp). Inngest should run the function at that time.
-2. **Cron fallback** — A cron runs every 5 minutes and processes any due reminders. This works even if scheduled events don't trigger. After deploying, reminders should arrive within 5 minutes of their due time.
+When you create an appointment, we send `reminder/send` events to Inngest with a `ts` (timestamp). Inngest runs the function at that time and sends email/WhatsApp/push.
+
+## Local Development
+
+1. **Start Inngest Dev Server** (in a separate terminal):
+   ```bash
+   npx inngest-cli@latest dev
+   ```
+
+2. **Set in `.env`**:
+   ```
+   INNGEST_DEV=1
+   INNGEST_EVENT_KEY=your-event-key   # From https://app.inngest.com → Manage → Event Keys
+   INNGEST_SIGNING_KEY=your-signing-key
+   ```
+
+3. **Sync**: The dev server will sync with your app at `http://localhost:3000/api/inngest`. Ensure your Next.js app is running.
+
+4. **Test**: Create an appointment for **30+ minutes from now** with the 15-min reminder. Check:
+   - Terminal: Look for `scheduleReminders: start` and `scheduleReminders: events sent`
+   - Inngest Dev UI: http://localhost:8288 — Events and Runs tabs
+
+5. **No logs?** If you don't see `scheduleReminders: start` in the terminal, the API route may not be hit. Check the Network tab for the POST to `/api/v1/appointments`.
+
+6. **"No events to send"** — All reminder times were in the past. Create an appointment further in the future.
 
 ## 1. Vercel Environment Variables
 
@@ -84,14 +107,14 @@ Reminders are skipped if the user has disabled them:
 3. Check Inngest Dashboard → Runs for a `reminder/send` event
 4. Wait 15 minutes and check your email
 
-## WhatsApp Reminders
+## SMS Reminders
 
-If you've enabled WhatsApp reminders in Profile, ensure:
+If you've enabled SMS reminders in Profile, ensure:
 
 - `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` are set in Vercel
-- `TWILIO_WHATSAPP_NUMBER` is set (e.g. `whatsapp:+14155238886` for sandbox)
-- For testing: use [Twilio WhatsApp Sandbox](https://www.twilio.com/docs/whatsapp/sandbox) and join with your phone
-- Users must enter their WhatsApp number with country code (e.g. +91 9876543210)
+- `TWILIO_PHONE_NUMBER` is set (your Twilio phone number, e.g. +1234567890)
+- Get a phone number from [Twilio Console](https://console.twilio.com) → Phone Numbers
+- Users must enter their phone number with country code (e.g. +91 9876543210)
 
 ## Summary Checklist
 
