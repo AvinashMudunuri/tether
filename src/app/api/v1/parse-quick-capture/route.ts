@@ -37,11 +37,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  try {
+  const callOpenAI = async () => {
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
-    const completion = await openai.chat.completions.create({
+    return openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -69,6 +69,21 @@ For task: {"type":"task","title":"...","dueDate":"YYYY-MM-DD" or null}
       response_format: { type: "json_object" },
       max_tokens: 150,
     });
+  };
+
+  try {
+    let completion;
+    try {
+      completion = await callOpenAI();
+    } catch (rateErr) {
+      const msg = rateErr instanceof Error ? rateErr.message : String(rateErr);
+      if (msg.includes("429") || msg.includes("rate limit")) {
+        await new Promise((r) => setTimeout(r, 3000));
+        completion = await callOpenAI();
+      } else {
+        throw rateErr;
+      }
+    }
 
     const text = completion.choices[0]?.message?.content;
     if (!text) {
@@ -109,10 +124,16 @@ For task: {"type":"task","title":"...","dueDate":"YYYY-MM-DD" or null}
       dueDate,
     });
   } catch (err) {
-    console.error("parse-quick-capture error:", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    const isQuota = msg.includes("429") || msg.includes("quota");
+    if (isQuota) {
+      console.warn("parse-quick-capture: OpenAI quota exceeded, client will use rule-based fallback");
+    } else {
+      console.error("parse-quick-capture error:", err);
+    }
     return Response.json(
-      { error: err instanceof Error ? err.message : "Parse failed" },
-      { status: 500 }
+      { error: isQuota ? "API quota exceeded" : (err instanceof Error ? err.message : "Parse failed") },
+      { status: isQuota ? 503 : 500 }
     );
   }
 }

@@ -11,16 +11,24 @@ import {
   type QuickCaptureParseResult,
 } from "@/lib/quick-capture-parse";
 
-async function parseWithAI(input: string): Promise<QuickCaptureParseResult | null> {
+async function parseWithAI(input: string, retries = 1): Promise<QuickCaptureParseResult | null> {
   const res = await fetch("/api/v1/parse-quick-capture", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ input }),
     credentials: "include",
   });
-  if (!res.ok) return null;
-  const data = (await res.json()) as QuickCaptureParseResult;
-  return data;
+  if (res.ok) {
+    const data = (await res.json()) as QuickCaptureParseResult;
+    return { ...data, confidence: "high" as const };
+  }
+  if (res.status === 429 || res.status === 503) {
+    if (retries > 0) {
+      await new Promise((r) => setTimeout(r, 2000));
+      return parseWithAI(input, retries - 1);
+    }
+  }
+  return null;
 }
 
 type SearchResult = {
@@ -36,7 +44,7 @@ export function QuickCaptureBar() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [confirmMode, setConfirmMode] = useState<QuickCaptureParseResult | null>(null);
+  const [aiParsing, setAiParsing] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -46,36 +54,35 @@ export function QuickCaptureBar() {
       setParseResult(null);
       return;
     }
+    setParseResult(parseQuickCapture(query));
     const timer = setTimeout(async () => {
       setLoading(true);
-      const [searchRes, aiParsed] = await Promise.all([
-        fetch(`/api/v1/search?q=${encodeURIComponent(query)}`, { credentials: "include" }),
-        parseWithAI(query),
-      ]);
+      const searchRes = await fetch(`/api/v1/search?q=${encodeURIComponent(query)}`, {
+        credentials: "include",
+      });
       if (searchRes.ok) {
         const data = await searchRes.json();
         setSearchResults(data);
       } else {
         setSearchResults(null);
       }
-      setParseResult(aiParsed ?? parseQuickCapture(query));
       setLoading(false);
-    }, 200);
+    }, 300);
     return () => clearTimeout(timer);
   }, [query]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
+      if (aiParsing) return;
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
-        setConfirmMode(null);
       }
     }
-    if (open || confirmMode) {
+    if (open || aiParsing) {
       document.addEventListener("click", handleClickOutside);
       return () => document.removeEventListener("click", handleClickOutside);
     }
-  }, [open, confirmMode]);
+  }, [open, aiParsing]);
 
   const hasSearchResults = searchResults && (searchResults.tasks.length > 0 || searchResults.appointments.length > 0);
   const hasCreateSuggestion = parseResult !== null;
@@ -86,27 +93,47 @@ export function QuickCaptureBar() {
     "Meeting with John Friday 3pm",
     "Pay electricity bill tonight",
     "Doctor appointment tomorrow 10am",
+    "Lunch with Sarah sometime next week",
   ];
 
-  async function handleCreate() {
-    if (!confirmMode || creating) return;
+  async function handleSubmit() {
+    const parsed = parseResult ?? parseQuickCapture(query);
+    if (!parsed || creating || aiParsing) return;
 
+    if (parsed.confidence === "high") {
+      await createItem(parsed);
+      return;
+    }
+
+    setAiParsing(true);
+    try {
+      const aiResult = await parseWithAI(query);
+      if (aiResult) {
+        await createItem(aiResult);
+      } else {
+        await createItem(parsed);
+      }
+    } finally {
+      setAiParsing(false);
+    }
+  }
+
+  async function createItem(item: QuickCaptureParseResult) {
     setCreating(true);
     try {
-      if (confirmMode.type === "task") {
+      if (item.type === "task") {
         const res = await fetch("/api/v1/tasks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            title: confirmMode.title,
-            dueDate: confirmMode.dueDate || undefined,
+            title: item.title,
+            dueDate: item.dueDate || undefined,
           }),
           credentials: "include",
         });
         if (res.ok) {
-          toast.success(`Task created — ${confirmMode.title}`);
+          toast.success(`Task created — ${item.title}`);
           setQuery("");
-          setConfirmMode(null);
           setOpen(false);
           router.refresh();
         } else {
@@ -117,19 +144,18 @@ export function QuickCaptureBar() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            title: confirmMode.title,
-            date: confirmMode.date,
-            time: confirmMode.time,
+            title: item.title,
+            date: item.date,
+            time: item.time,
             timezoneOffset: new Date().getTimezoneOffset(),
             reminderTypes: ["1_day", "1_hour", "15_min"],
           }),
           credentials: "include",
         });
         if (res.ok) {
-          const preview = formatAppointmentPreview(confirmMode.date, confirmMode.time);
-          toast.success(`Appointment created — ${confirmMode.title} · ${preview}`);
+          const preview = formatAppointmentPreview(item.date, item.time);
+          toast.success(`Appointment created — ${item.title} · ${preview}`);
           setQuery("");
-          setConfirmMode(null);
           setOpen(false);
           router.refresh();
         } else {
@@ -144,56 +170,22 @@ export function QuickCaptureBar() {
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter") {
-      if (confirmMode) {
+      if (parseResult) {
         e.preventDefault();
-        handleCreate();
-      } else if (parseResult) {
-        e.preventDefault();
-        setConfirmMode(parseResult);
-        inputRef.current?.blur();
+        handleSubmit();
       }
     }
     if (e.key === "Escape") {
-      setConfirmMode(null);
       setOpen(false);
     }
   }
 
-  if (confirmMode) {
+  if (aiParsing) {
     return (
       <div className="relative" ref={ref}>
-        <div className="flex items-center gap-2 w-full max-w-md">
-          <div className="flex-1 rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-950/20 px-3 py-2 text-sm">
-            {confirmMode.type === "task" ? (
-              <>
-                <p className="font-medium text-slate-900 dark:text-white">✨ {confirmMode.title}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Create task</p>
-              </>
-            ) : (
-              <>
-                <p className="font-medium text-slate-900 dark:text-white">✨ {confirmMode.title}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {formatAppointmentPreview(confirmMode.date, confirmMode.time)}
-                </p>
-              </>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={handleCreate}
-            disabled={creating}
-            className="px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium disabled:opacity-60"
-          >
-            {creating ? "Saving…" : "Save"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirmMode(null)}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-            aria-label="Cancel"
-          >
-            <X className="w-4 h-4" aria-hidden />
-          </button>
+        <div className="flex items-center gap-2 w-full max-w-md rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-950/20 px-3 py-2.5">
+          <span className="inline-block w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" aria-hidden />
+          <p className="text-sm text-slate-700 dark:text-slate-300">Parsing with AI…</p>
         </div>
       </div>
     );
@@ -210,7 +202,7 @@ export function QuickCaptureBar() {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Try: Meeting tomorrow 5pm"
+          placeholder='Smart capture — try "Meeting tomorrow 5pm"'
           className="w-64 sm:w-80 pl-9 pr-8 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-gradient-to-r from-slate-50 to-white dark:from-slate-800/80 dark:to-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-400/50 dark:focus:ring-amber-500/30 dark:focus:border-amber-500/50"
           aria-label="Smart capture — add tasks, appointments, or search"
           aria-haspopup="listbox"
@@ -218,10 +210,7 @@ export function QuickCaptureBar() {
         {query && (
           <button
             type="button"
-            onClick={() => {
-              setQuery("");
-              setConfirmMode(null);
-            }}
+            onClick={() => setQuery("")}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
             aria-label="Clear"
           >
@@ -268,11 +257,9 @@ export function QuickCaptureBar() {
                   </p>
                   <button
                     type="button"
-                    onClick={() => {
-                      setConfirmMode(parseResult!);
-                      inputRef.current?.blur();
-                    }}
-                    className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left"
+                    onClick={() => handleSubmit()}
+                    disabled={creating}
+                    className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left disabled:opacity-60 disabled:cursor-not-allowed"
                     role="option"
                     aria-selected="false"
                   >

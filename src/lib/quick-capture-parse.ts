@@ -176,9 +176,31 @@ function extractTitleAndDatePhrase(text: string): { title: string; datePhrase: s
   return { title, datePhrase };
 }
 
+const VAGUE_PHRASES = [
+  /\bsometime\b/i,
+  /\bearly\b/i,
+  /\blater\b/i,
+  /\bcatch\s+up\b/i,
+  /\beventually\b/i,
+  /\bsoon\b/i,
+  /\bmaybe\b/i,
+  /\bperhaps\b/i,
+];
+
+function isLowConfidence(text: string, hasExtractedTime: boolean): boolean {
+  const lower = text.toLowerCase();
+  for (const p of VAGUE_PHRASES) {
+    if (p.test(lower)) return true;
+  }
+  if (lower.includes("next week") && !hasExtractedTime) return true;
+  return false;
+}
+
+export type ParseConfidence = "high" | "low";
+
 export type QuickCaptureParseResult =
-  | { type: "task"; title: string; dueDate?: string }
-  | { type: "appointment"; title: string; date: string; time: string; datePhrase: string };
+  | { type: "task"; title: string; dueDate?: string; confidence: ParseConfidence }
+  | { type: "appointment"; title: string; date: string; time: string; datePhrase: string; confidence: ParseConfidence };
 
 function normalizeInput(text: string): string {
   return text
@@ -192,7 +214,7 @@ export function parseQuickCapture(input: string): QuickCaptureParseResult | null
   if (!trimmed || trimmed.length < 2) return null;
 
   if (!hasDateOrTimeKeywords(trimmed)) {
-    return { type: "task", title: trimmed };
+    return { type: "task", title: trimmed, confidence: "high" };
   }
 
   const { title, datePhrase } = extractTitleAndDatePhrase(trimmed);
@@ -201,6 +223,7 @@ export function parseQuickCapture(input: string): QuickCaptureParseResult | null
   const { dateStr, timeStr } = getDateFromKeyword(datePhrase || "today");
   const extractedTime = extractTime(trimmed);
   const time = extractedTime || timeStr;
+  const confidence = isLowConfidence(trimmed, !!extractedTime) ? "low" : "high";
 
   return {
     type: "appointment",
@@ -208,6 +231,7 @@ export function parseQuickCapture(input: string): QuickCaptureParseResult | null
     date: dateStr,
     time,
     datePhrase: datePhrase || "today",
+    confidence,
   };
 }
 

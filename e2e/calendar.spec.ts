@@ -7,8 +7,8 @@ test.describe("Calendar", () => {
     test.skip(!email || !password, "Set TEST_USER_EMAIL and TEST_USER_PASSWORD to run auth tests");
 
     await page.goto("/login");
-    await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Password").fill(password);
+    await page.getByLabel("Email").fill(email!);
+    await page.getByLabel("Password").fill(password!);
     await page.getByRole("button", { name: /sign in/i }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 });
     await expect(page.getByRole("link", { name: /new appointment/i })).toBeVisible({ timeout: 5000 });
