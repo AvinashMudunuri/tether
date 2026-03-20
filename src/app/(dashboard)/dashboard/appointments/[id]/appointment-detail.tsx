@@ -433,11 +433,11 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
               )}
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
               {(appointment.status === "scheduled" || appointment.status === "missed") && (
                 <button
                   onClick={() => updateStatus("completed")}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                  className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 min-h-[44px]"
                   aria-label="Mark completed"
                 >
                   <Check className="w-4 h-4" aria-hidden />
@@ -447,7 +447,7 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
               {appointment.status === "scheduled" && (
                 <button
                   onClick={() => updateStatus("cancelled")}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 min-h-[44px]"
                   aria-label="Cancel appointment"
                 >
                   <X className="w-4 h-4" aria-hidden />
@@ -456,7 +456,7 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
               )}
               <button
                 onClick={() => setEditing(true)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                className={`flex items-center justify-center gap-2 px-5 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 min-h-[44px] ${
                   appointment.status === "scheduled" || appointment.status === "missed"
                     ? "bg-blue-600 hover:bg-blue-700 text-white"
                     : "border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -468,7 +468,7 @@ export function AppointmentDetail({ appointment }: { appointment: Appointment })
               </button>
               <button
                 onClick={() => setDeleteConfirmOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 min-h-[44px]"
                 aria-label="Delete appointment"
               >
                 <Trash2 className="w-4 h-4" aria-hidden />

@@ -30,8 +30,14 @@ function getMonthDays(year: number, month: number) {
   return grid;
 }
 
-function dateKey(d: Date | string) {
-  return new Date(d).toISOString().slice(0, 10);
+function dateKey(d: Date | string): string {
+  if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+  const dt = new Date(d);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
+
+function localDateStr(year: number, month: number, day: number): string {
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 function formatTime(t: string) {
@@ -54,10 +60,9 @@ export default function CalendarPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const start = new Date(cursor.year, cursor.month, 1);
-    const end = new Date(cursor.year, cursor.month + 1, 0);
-    const startStr = start.toISOString().slice(0, 10);
-    const endStr = end.toISOString().slice(0, 10);
+    const lastDay = new Date(cursor.year, cursor.month + 1, 0).getDate();
+    const startStr = localDateStr(cursor.year, cursor.month, 1);
+    const endStr = localDateStr(cursor.year, cursor.month, lastDay);
 
     const [appointmentsRes, tasksRes] = await Promise.all([
       fetch(`/api/v1/appointments?start=${startStr}&end=${endStr}`, { credentials: "include" }),
@@ -85,7 +90,7 @@ export default function CalendarPage() {
       const data = await tasksRes.json();
       for (const t of data) {
         if (!t.dueDate) continue;
-        const key = new Date(t.dueDate).toISOString().slice(0, 10);
+        const key = dateKey(t.dueDate);
         if (!tskByDate[key]) tskByDate[key] = [];
         tskByDate[key].push({
           id: t.id,
@@ -125,7 +130,8 @@ export default function CalendarPage() {
   };
 
   const monthDays = getMonthDays(cursor.year, cursor.month);
-  const todayKey = dateKey(new Date());
+  const today = new Date();
+  const todayKey = localDateStr(today.getFullYear(), today.getMonth(), today.getDate());
 
   return (
     <div className="space-y-6">
@@ -227,7 +233,7 @@ export default function CalendarPage() {
                     />
                   );
                 }
-                const key = dateKey(new Date(cursor.year, cursor.month, d));
+                const key = localDateStr(cursor.year, cursor.month, d);
                 const appointments = appointmentsByDate[key] || [];
                 const tasks = tasksByDate[key] || [];
                 const isToday = key === todayKey;

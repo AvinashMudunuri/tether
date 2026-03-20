@@ -221,7 +221,7 @@ export function QuickCaptureBar() {
 
       {showHints && (
         <div className="absolute top-full left-0 right-0 mt-1 py-3 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg z-50">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Try:</p>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Click to try:</p>
           <ul className="space-y-1">
             {EXAMPLE_HINTS.map((hint) => (
               <li key={hint}>
@@ -231,9 +231,10 @@ export function QuickCaptureBar() {
                     setQuery(hint);
                     inputRef.current?.focus();
                   }}
-                  className="text-sm text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 w-full text-left px-2 py-1.5 rounded"
+                  className="text-sm text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 w-full text-left px-3 py-2.5 rounded-lg border border-transparent hover:border-amber-200 dark:hover:border-amber-800/50 transition-colors"
                 >
-                  • {hint}
+                  <span className="text-amber-500 dark:text-amber-400 mr-2">→</span>
+                  {hint}
                 </button>
               </li>
             ))}

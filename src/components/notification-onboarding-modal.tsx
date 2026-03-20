@@ -13,7 +13,7 @@ export function NotificationOnboardingModal({
   show: boolean;
 }) {
   const router = useRouter();
-  const { requestToken, loading: pushLoading, error: pushError } = useFirebasePush();
+  const { requestToken, loading: pushLoading, error: pushError, isSupported: pushSupported } = useFirebasePush();
   const [emailReminders, setEmailReminders] = useState(true);
   const [smsReminders, setSmsReminders] = useState(false);
   const [smsNumber, setSmsNumber] = useState("");
@@ -130,21 +130,30 @@ export function NotificationOnboardingModal({
             )}
           </div>
 
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={pushNotifications}
-              onChange={(e) => handlePushToggle(e.target.checked)}
-              disabled={pushLoading || loading}
-              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
-            />
-            <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <Smartphone className="w-4 h-4 text-blue-600" aria-hidden />
-              Push notifications (browser)
-            </span>
-          </label>
-          {pushLoading && (
-            <p className="text-sm text-slate-500">Requesting permission…</p>
+          {pushSupported ? (
+            <>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={pushNotifications}
+                  onChange={(e) => handlePushToggle(e.target.checked)}
+                  disabled={pushLoading || loading}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                />
+                <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Smartphone className="w-4 h-4 text-blue-600" aria-hidden />
+                  Push notifications (browser)
+                </span>
+              </label>
+              {pushLoading && (
+                <p className="text-sm text-slate-500">Requesting permission…</p>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-slate-400" aria-hidden />
+              Push notifications are not available in this browser.
+            </p>
           )}
         </div>
 

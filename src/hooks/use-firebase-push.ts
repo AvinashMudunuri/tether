@@ -9,8 +9,18 @@ export type UseFirebasePushResult = {
   token: string | null;
   error: string | null;
   loading: boolean;
+  isSupported: boolean;
   requestToken: () => Promise<string | null>;
 };
+
+export function isPushSupported(): boolean {
+  if (typeof window === "undefined") return false;
+  return !!(
+    "Notification" in window &&
+    "serviceWorker" in navigator &&
+    "PushManager" in window
+  );
+}
 
 export function useFirebasePush(): UseFirebasePushResult {
   const [token, setToken] = useState<string | null>(null);
@@ -68,7 +78,7 @@ export function useFirebasePush(): UseFirebasePushResult {
     }
   }, []);
 
-  return { token, error, loading, requestToken };
+  return { token, error, loading, isSupported: isPushSupported(), requestToken };
 }
 
 async function registerServiceWorker(): Promise<ServiceWorkerRegistration> {

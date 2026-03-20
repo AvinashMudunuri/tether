@@ -17,7 +17,15 @@ export async function sendReminderEmail(params: {
   location?: string;
   appointmentUrl: string;
 }) {
-  const { to, subject, appointmentTitle, date, time, location, appointmentUrl } = params;
+  const {
+    to,
+    subject,
+    appointmentTitle,
+    date,
+    time,
+    location,
+    appointmentUrl,
+  } = params;
 
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -41,7 +49,7 @@ export async function sendReminderEmail(params: {
 
   const resend = getResend();
   const { data, error } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL || "Tetherly <onboarding@resend.dev>",
+    from: process.env.RESEND_FROM_EMAIL || "Tetherly <reminders@tetherly.site>",
     to: [to],
     subject,
     html,

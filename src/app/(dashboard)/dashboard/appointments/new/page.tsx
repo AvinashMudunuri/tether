@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, CalendarPlus } from "lucide-react";
+import { ArrowLeft, CalendarPlus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { REMINDER_TYPES, getValidReminderTypes, type ReminderType } from "@/lib/reminders";
 
@@ -35,7 +35,10 @@ export default function NewAppointmentPage() {
     recurrenceType: "none" as "none" | "weekly" | "monthly",
     recurrenceEndDate: "",
     reminderTypes: ["1_hour", "30_min", "15_min"] as ReminderType[],
+    checklistItems: [] as string[],
   });
+  const [newChecklistItem, setNewChecklistItem] = useState("");
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
 
   const validTypes = useMemo(
     () => getValidReminderTypes(form.date, form.time, new Date().getTimezoneOffset()),
@@ -57,7 +60,7 @@ export default function NewAppointmentPage() {
     const res = await fetch("/api/v1/appointments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      body: JSON.stringify({
         title: form.title,
         date: form.date,
         time: form.time,
@@ -68,6 +71,7 @@ export default function NewAppointmentPage() {
         recurrenceType: form.recurrenceType !== "none" ? form.recurrenceType : undefined,
         recurrenceEndDate: form.recurrenceEndDate || undefined,
         reminderTypes: form.reminderTypes,
+        checklistItems: form.checklistItems.length > 0 ? form.checklistItems : undefined,
       }),
       credentials: "include",
     });
@@ -82,8 +86,24 @@ export default function NewAppointmentPage() {
       return;
     }
 
+    const appointmentId = data.id;
+
+    for (const file of attachmentFiles) {
+      const fd = new FormData();
+      fd.append("file", file);
+      const upRes = await fetch(`/api/v1/appointments/${appointmentId}/attachments`, {
+        method: "POST",
+        body: fd,
+        credentials: "include",
+      });
+      if (!upRes.ok) {
+        const errData = await upRes.json().catch(() => ({}));
+        toast.error(errData.error || `Failed to upload ${file.name}`);
+      }
+    }
+
     toast.success("Appointment created");
-    router.push(`/dashboard/appointments/${data.id}`);
+    router.push(`/dashboard/appointments/${appointmentId}`);
     router.refresh();
   }
 
@@ -287,6 +307,111 @@ export default function NewAppointmentPage() {
             placeholder="e.g. Dr. Smith, Mom"
             className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
+        </div>
+
+        <div>
+          <label htmlFor="checklist-input" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Checklist
+          </label>
+          <div className="flex gap-2 mb-2">
+            <input
+              id="checklist-input"
+              type="text"
+              value={newChecklistItem}
+              onChange={(e) => setNewChecklistItem(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (newChecklistItem.trim()) {
+                    setForm((f) => ({ ...f, checklistItems: [...f.checklistItems, newChecklistItem.trim()] }));
+                    setNewChecklistItem("");
+                  }
+                }
+              }}
+              placeholder="Add item..."
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              aria-label="New checklist item"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (newChecklistItem.trim()) {
+                  setForm((f) => ({ ...f, checklistItems: [...f.checklistItems, newChecklistItem.trim()] }));
+                  setNewChecklistItem("");
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Add checklist item"
+            >
+              <Plus className="w-4 h-4" aria-hidden />
+              Add
+            </button>
+          </div>
+          {form.checklistItems.length > 0 && (
+            <ul className="space-y-1.5 mb-4">
+              {form.checklistItems.map((item, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm">
+                  <span className="flex-1 text-slate-700 dark:text-slate-300">{item}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        checklistItems: f.checklistItems.filter((_, j) => j !== i),
+                      }))
+                    }
+                    className="p-1 rounded text-slate-400 hover:text-red-600 dark:hover:text-red-400"
+                    aria-label={`Remove ${item}`}
+                  >
+                    <X className="w-4 h-4" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="attachments-input" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Attachments
+          </label>
+          <input
+            id="attachments-input"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            onChange={(e) => {
+              const files = Array.from(e.target.files || []);
+              const valid = files.filter((f) => {
+                if (f.size > 5 * 1024 * 1024) return false;
+                const type = f.type.toLowerCase();
+                return ["image/jpeg", "image/png", "image/webp"].includes(type);
+              });
+              setAttachmentFiles((prev) => [...prev, ...valid].slice(0, 10));
+              e.target.value = "";
+            }}
+            className="block w-full text-sm text-slate-600 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-slate-100 dark:file:bg-slate-800 file:text-slate-700 dark:file:text-slate-300 hover:file:bg-slate-200 dark:hover:file:bg-slate-700"
+          />
+          {attachmentFiles.length > 0 && (
+            <ul className="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-400">
+              {attachmentFiles.map((f, i) => (
+                <li key={i} className="flex items-center justify-between">
+                  <span className="truncate">{f.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setAttachmentFiles((prev) => prev.filter((_, j) => j !== i))}
+                    className="text-red-600 dark:text-red-400 hover:underline"
+                    aria-label={`Remove ${f.name}`}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            JPG, PNG, WebP. Max 5MB each. Up to 10 files.
+          </p>
         </div>
 
         <div>

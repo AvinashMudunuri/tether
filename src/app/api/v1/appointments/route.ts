@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
     recurrenceType?: string;
     recurrenceEndDate?: string;
     reminderTypes?: string[];
+    checklistItems?: string[];
   };
   try {
     body = await request.json();
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
     return badRequest("Invalid JSON");
   }
 
-  const { title, date, time, timezoneOffset, location, attendees, notes, recurrenceType, recurrenceEndDate, reminderTypes: bodyTypes } = body;
+  const { title, date, time, timezoneOffset, location, attendees, notes, recurrenceType, recurrenceEndDate, reminderTypes: bodyTypes, checklistItems: bodyChecklist } = body;
 
   if (!title?.trim()) return badRequest("Title is required", { title: ["Required"] });
   if (!date) return badRequest("Date is required", { date: ["Required"] });
@@ -117,6 +118,13 @@ export async function POST(request: NextRequest) {
       recurrenceEndDate: validRecurrence && recurrenceEndDate
         ? new Date(recurrenceEndDate)
         : null,
+      checklistItems: Array.isArray(bodyChecklist) && bodyChecklist.length > 0
+        ? {
+            create: bodyChecklist
+              .filter((l): l is string => typeof l === "string" && l.trim().length > 0)
+              .map((label, i) => ({ label: label.trim(), order: i })),
+          }
+        : undefined,
     },
     include: { checklistItems: true, reminders: true, attachments: true },
   });
