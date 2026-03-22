@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { dismissOnboardingModal } from "./helpers";
 
 test.describe("Tasks", () => {
   test.beforeEach(async ({ page }) => {
@@ -11,6 +12,7 @@ test.describe("Tasks", () => {
     await page.getByLabel("Password").fill(password!);
     await page.getByRole("button", { name: /sign in/i }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 });
+    await dismissOnboardingModal(page);
     await expect(page.getByRole("link", { name: /new appointment/i })).toBeVisible({ timeout: 5000 });
   });
 
@@ -23,8 +25,10 @@ test.describe("Tasks", () => {
   test("can add task", async ({ page }) => {
     await page.goto("/dashboard/tasks");
     const taskTitle = `E2E Test Task ${Date.now()}`;
-    await page.getByPlaceholder("Add a task...").fill(taskTitle);
+    await page.getByPlaceholder(/Add a task/).fill(taskTitle);
     await page.getByRole("button", { name: "Add" }).click();
-    await expect(page.getByRole("listitem").filter({ hasText: taskTitle })).toBeVisible({ timeout: 5000 });
+    // Wait for success toast, then for task to appear (fetchTasks runs after API response)
+    await expect(page.getByText("Task added")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole("listitem").filter({ hasText: taskTitle })).toBeVisible({ timeout: 10000 });
   });
 });

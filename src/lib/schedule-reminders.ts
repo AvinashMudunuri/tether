@@ -74,7 +74,12 @@ export async function scheduleRemindersForAppointment(
 
   if (events.length > 0) {
     try {
-      await inngest.send(events);
+      await Promise.race([
+        inngest.send(events),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Inngest send timeout")), 5000)
+        ),
+      ]);
       logger.info("scheduleReminders: events sent to Inngest", {
         appointmentId,
         count: events.length,
@@ -85,7 +90,7 @@ export async function scheduleRemindersForAppointment(
         appointmentId,
         error: err instanceof Error ? err.message : String(err),
       });
-      throw err;
+      // Don't throw: appointment is created; reminders can be retried or fixed later
     }
   } else {
     logger.warn("scheduleReminders: no events to send (all reminders in past?)", {

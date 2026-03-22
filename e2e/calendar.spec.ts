@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { dismissOnboardingModal } from "./helpers";
 
 test.describe("Calendar", () => {
   test.beforeEach(async ({ page }) => {
@@ -11,6 +12,7 @@ test.describe("Calendar", () => {
     await page.getByLabel("Password").fill(password!);
     await page.getByRole("button", { name: /sign in/i }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 });
+    await dismissOnboardingModal(page);
     await expect(page.getByRole("link", { name: /new appointment/i })).toBeVisible({ timeout: 5000 });
   });
 
