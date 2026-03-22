@@ -30,10 +30,11 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/signup") ||
     request.nextUrl.pathname.startsWith("/forgot-password") ||
     request.nextUrl.pathname.startsWith("/auth");
+  const isResetPasswordPage = request.nextUrl.pathname === "/auth/reset-password";
   const isDashboardRoute =
     request.nextUrl.pathname.startsWith("/dashboard") || request.nextUrl.pathname === "/";
 
-  if (isAuthRoute && user) {
+  if (isAuthRoute && user && !isResetPasswordPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
