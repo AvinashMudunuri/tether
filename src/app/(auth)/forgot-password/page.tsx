@@ -16,10 +16,11 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     const supabase = createClient();
-    const redirectTo =
+    const baseUrl =
       typeof window !== "undefined"
-        ? `${window.location.origin}/auth/reset-password`
-        : process.env.NEXT_PUBLIC_APP_URL || "https://tether-mpn5.vercel.app";
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL || "https://www.tetherly.site";
+    const redirectTo = `${baseUrl}/auth/callback`;
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,

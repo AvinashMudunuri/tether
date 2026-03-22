@@ -12,34 +12,32 @@ function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [invalidLink, setInvalidLink] = useState(false);
-  const [codeExchanged, setCodeExchanged] = useState(false);
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
 
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type");
-  const code = searchParams.get("code");
+  const authError = searchParams.get("error");
 
   useEffect(() => {
-    if (code) {
-      const supabase = createClient();
-      supabase.auth
-        .exchangeCodeForSession(code)
-        .then(({ error: exchangeError }) => {
-          if (exchangeError) {
-            setError(exchangeError.message);
-            setInvalidLink(true);
-          } else {
-            setCodeExchanged(true);
-          }
-        })
-        .catch(() => setInvalidLink(true));
+    if (authError === "auth") {
+      setError("Invalid or expired link. Please request a new one.");
+      setInvalidLink(true);
       return;
     }
-    if (!tokenHash || type !== "recovery") {
-      setInvalidLink(true);
+    if (tokenHash && type === "recovery") {
+      setHasSession(false);
+      return;
     }
-  }, [code, tokenHash, type]);
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setHasSession(!!user);
+      if (!user && !tokenHash) {
+        setInvalidLink(true);
+      }
+    });
+  }, [tokenHash, type, authError]);
 
-  const canSetPassword = codeExchanged || (!!tokenHash && type === "recovery");
+  const canSetPassword = hasSession === true || (!!tokenHash && type === "recovery");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,7 +46,7 @@ function ResetPasswordForm() {
 
     const supabase = createClient();
 
-    if (tokenHash && type === "recovery" && !codeExchanged) {
+    if (tokenHash && type === "recovery" && hasSession !== true) {
       const { error: otpError } = await supabase.auth.verifyOtp({
         token_hash: tokenHash,
         type: "recovery",
@@ -77,7 +75,7 @@ function ResetPasswordForm() {
     router.refresh();
   }
 
-  if (code && !codeExchanged && !error) {
+  if (hasSession === null && !tokenHash) {
     return (
       <div
         className="bg-white dark:bg-slate-900 rounded-xl shadow-lg p-8 border border-slate-200 dark:border-slate-800"
@@ -88,7 +86,7 @@ function ResetPasswordForm() {
     );
   }
 
-  if (invalidLink && !codeExchanged) {
+  if (invalidLink) {
     return (
       <div
         className="bg-white dark:bg-slate-900 rounded-xl shadow-lg p-8 border border-slate-200 dark:border-slate-800"
@@ -111,7 +109,14 @@ function ResetPasswordForm() {
   }
 
   if (!canSetPassword && !invalidLink) {
-    return null;
+    return (
+      <div
+        className="bg-white dark:bg-slate-900 rounded-xl shadow-lg p-8 border border-slate-200 dark:border-slate-800"
+        role="region"
+      >
+        <p className="text-slate-600 dark:text-slate-400">Verifying...</p>
+      </div>
+    );
   }
 
   return (

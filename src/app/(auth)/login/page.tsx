@@ -17,7 +17,7 @@ function LoginForm() {
 
   useEffect(() => {
     if (code) {
-      router.replace(`/auth/reset-password?code=${encodeURIComponent(code)}`);
+      router.replace(`/auth/callback?code=${encodeURIComponent(code)}&next=/auth/reset-password`);
     }
   }, [code, router]);
 
