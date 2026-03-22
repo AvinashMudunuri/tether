@@ -12,30 +12,54 @@ function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [invalidLink, setInvalidLink] = useState(false);
+  const [codeExchanged, setCodeExchanged] = useState(false);
 
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type");
+  const code = searchParams.get("code");
 
   useEffect(() => {
+    if (code) {
+      const supabase = createClient();
+      supabase.auth
+        .exchangeCodeForSession(code)
+        .then(({ error: exchangeError }) => {
+          if (exchangeError) {
+            setError(exchangeError.message);
+            setInvalidLink(true);
+          } else {
+            setCodeExchanged(true);
+          }
+        })
+        .catch(() => setInvalidLink(true));
+      return;
+    }
     if (!tokenHash || type !== "recovery") {
       setInvalidLink(true);
     }
-  }, [tokenHash, type]);
+  }, [code, tokenHash, type]);
+
+  const canSetPassword = codeExchanged || (!!tokenHash && type === "recovery");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!tokenHash) return;
     setError(null);
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash: tokenHash,
-      type: "recovery",
-    });
 
-    if (error) {
-      setError(error.message);
+    if (tokenHash && type === "recovery" && !codeExchanged) {
+      const { error: otpError } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: "recovery",
+      });
+      if (otpError) {
+        setError(otpError.message);
+        setLoading(false);
+        return;
+      }
+    } else if (!canSetPassword) {
+      setError("Please complete the verification first.");
       setLoading(false);
       return;
     }
@@ -53,7 +77,18 @@ function ResetPasswordForm() {
     router.refresh();
   }
 
-  if (invalidLink) {
+  if (code && !codeExchanged && !error) {
+    return (
+      <div
+        className="bg-white dark:bg-slate-900 rounded-xl shadow-lg p-8 border border-slate-200 dark:border-slate-800"
+        role="region"
+      >
+        <p className="text-slate-600 dark:text-slate-400">Verifying your reset link...</p>
+      </div>
+    );
+  }
+
+  if (invalidLink && !codeExchanged) {
     return (
       <div
         className="bg-white dark:bg-slate-900 rounded-xl shadow-lg p-8 border border-slate-200 dark:border-slate-800"
@@ -63,7 +98,7 @@ function ResetPasswordForm() {
           Invalid or expired link
         </h1>
         <p className="text-slate-600 dark:text-slate-400 mb-6">
-          This password reset link is invalid or has expired. Please request a new one.
+          {error || "This password reset link is invalid or has expired. Please request a new one."}
         </p>
         <Link
           href="/forgot-password"
@@ -73,6 +108,10 @@ function ResetPasswordForm() {
         </Link>
       </div>
     );
+  }
+
+  if (!canSetPassword && !invalidLink) {
+    return null;
   }
 
   return (

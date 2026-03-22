@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -13,6 +13,13 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resetSuccess = searchParams.get("reset") === "success";
+  const code = searchParams.get("code");
+
+  useEffect(() => {
+    if (code) {
+      router.replace(`/auth/reset-password?code=${encodeURIComponent(code)}`);
+    }
+  }, [code, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,6 +38,14 @@ function LoginForm() {
 
     router.push("/dashboard");
     router.refresh();
+  }
+
+  if (code) {
+    return (
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-lg p-8 border border-slate-200 dark:border-slate-800">
+        <p className="text-slate-600 dark:text-slate-400">Redirecting to password reset...</p>
+      </div>
+    );
   }
 
   return (
