@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAuthUser, unauthorized, notFound, badRequest } from "@/lib/api-auth";
 import { validateFile, uploadTaskAttachment } from "@/lib/storage";
+import { logger } from "@/lib/logger";
 
 export async function POST(
   request: NextRequest,
@@ -29,12 +30,16 @@ export async function POST(
   }
 
   try {
-    const { storagePath } = await uploadTaskAttachment(user.id, taskId, file);
+    const { storagePath, sanitizedFileName } = await uploadTaskAttachment(
+      user.id,
+      taskId,
+      file
+    );
 
     const attachment = await prisma.taskAttachment.create({
       data: {
         taskId,
-        fileName: file.name,
+        fileName: sanitizedFileName,
         storagePath,
         mimeType: file.type,
         size: file.size,
@@ -43,7 +48,7 @@ export async function POST(
 
     return Response.json(attachment, { status: 201 });
   } catch (err) {
-    console.error("Task attachment upload error:", err);
+    logger.error("Task attachment upload error", { taskId }, err);
     return badRequest(
       err instanceof Error ? err.message : "Failed to upload file"
     );

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import OpenAI from "openai";
 import { getAuthUser, unauthorized, badRequest } from "@/lib/api-auth";
+import { logger } from "@/lib/logger";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -86,7 +87,7 @@ Return ONLY valid JSON, no markdown. Use 24h for dueTime. Example: {"title":"Pay
       dueTime: parsed.dueTime && /^\d{1,2}:\d{2}$/.test(String(parsed.dueTime)) ? String(parsed.dueTime) : null,
     });
   } catch (err) {
-    console.error("parse-task error:", err);
+    logger.error("parse-task error", undefined, err);
     return Response.json(
       { error: err instanceof Error ? err.message : "Parse failed" },
       { status: 500 }

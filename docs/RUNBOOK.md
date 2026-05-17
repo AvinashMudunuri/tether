@@ -21,6 +21,9 @@ Quick reference for common operations and troubleshooting.
 | `RESEND_FROM_EMAIL` | Sender email (optional) | e.g. `Tetherly <noreply@yourdomain.com>` |
 | `NEXT_PUBLIC_APP_URL` | Production URL | e.g. `https://your-app.vercel.app` |
 | `CRON_SECRET` | Secret for cron auth | Generate random string; set in Vercel |
+| `INNGEST_SIGNING_KEY` | Inngest webhook verification | Required in production; from Inngest dashboard |
+| `UPSTASH_REDIS_REST_URL` | Rate limiting (optional) | Upstash Console |
+| `UPSTASH_REDIS_REST_TOKEN` | Rate limiting (optional) | Upstash Console |
 
 ## Common Issues
 
@@ -54,3 +57,11 @@ pnpm prisma migrate deploy
 ## Health Check
 
 `GET /api/health` — Returns `{ status: "ok", database: "connected" }` when healthy.
+
+## Monitoring (Sentry)
+
+- Add `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` to enable error tracking
+- Errors from API routes, React components, and middleware are captured
+- Tunnel route `/monitoring` routes Sentry traffic through the app (avoids ad-blockers)
+
+**Source maps** (for readable stack traces in production): set `SENTRY_ORG`, `SENTRY_PROJECT`, and `SENTRY_AUTH_TOKEN` in your CI/Vercel build env. The auth token needs `project:releases` and `org:read` scopes.

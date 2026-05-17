@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAuthUser, unauthorized, notFound, badRequest } from "@/lib/api-auth";
 import { validateFile, uploadAttachment } from "@/lib/storage";
+import { logger } from "@/lib/logger";
 
 export async function POST(
   request: NextRequest,
@@ -29,7 +30,7 @@ export async function POST(
   }
 
   try {
-    const { storagePath } = await uploadAttachment(
+    const { storagePath, sanitizedFileName } = await uploadAttachment(
       user.id,
       appointmentId,
       file
@@ -38,7 +39,7 @@ export async function POST(
     const attachment = await prisma.attachment.create({
       data: {
         appointmentId,
-        fileName: file.name,
+        fileName: sanitizedFileName,
         storagePath,
         mimeType: file.type,
         size: file.size,
@@ -47,7 +48,7 @@ export async function POST(
 
     return Response.json(attachment, { status: 201 });
   } catch (err) {
-    console.error("Attachment upload error:", err);
+    logger.error("Attachment upload error", { appointmentId }, err);
     return badRequest(
       err instanceof Error ? err.message : "Failed to upload file"
     );

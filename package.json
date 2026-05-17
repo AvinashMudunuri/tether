@@ -5,6 +5,7 @@
   "scripts": {
     "postinstall": "prisma generate",
     "dev": "next dev",
+    "mobile:dev": "pnpm --filter mobile start",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
@@ -16,8 +17,11 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@sentry/nextjs": "^10.45.0",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.99.1",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.37.0",
     "firebase": "^11.0.0",
     "firebase-admin": "^13.0.0",
     "inngest": "^3.52.6",

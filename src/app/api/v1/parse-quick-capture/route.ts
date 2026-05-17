@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import OpenAI from "openai";
 import { getAuthUser, unauthorized, badRequest } from "@/lib/api-auth";
+import { logger } from "@/lib/logger";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -127,9 +128,9 @@ For task: {"type":"task","title":"...","dueDate":"YYYY-MM-DD" or null}
     const msg = err instanceof Error ? err.message : String(err);
     const isQuota = msg.includes("429") || msg.includes("quota");
     if (isQuota) {
-      console.warn("parse-quick-capture: OpenAI quota exceeded, client will use rule-based fallback");
+      logger.warn("parse-quick-capture: OpenAI quota exceeded, client will use rule-based fallback");
     } else {
-      console.error("parse-quick-capture error:", err);
+      logger.error("parse-quick-capture error", undefined, err);
     }
     return Response.json(
       { error: isQuota ? "API quota exceeded" : (err instanceof Error ? err.message : "Parse failed") },

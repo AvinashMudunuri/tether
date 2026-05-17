@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { getAppUrl } from "@/lib/env";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -17,9 +18,7 @@ export default function ForgotPasswordPage() {
 
     const supabase = createClient();
     const baseUrl =
-      typeof window !== "undefined"
-        ? window.location.origin
-        : process.env.NEXT_PUBLIC_APP_URL || "https://www.tetherly.site";
+      typeof window !== "undefined" ? window.location.origin : getAppUrl();
     const redirectTo = `${baseUrl}/auth/callback`;
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {

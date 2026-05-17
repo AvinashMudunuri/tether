@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAuthUser, unauthorized, notFound } from "@/lib/api-auth";
 import { deleteFromStorage } from "@/lib/storage";
+import { logger } from "@/lib/logger";
 
 export async function DELETE(
   request: NextRequest,
@@ -25,7 +26,7 @@ export async function DELETE(
   try {
     await deleteFromStorage(attachment.storagePath);
   } catch (err) {
-    console.error("Storage delete error:", err);
+    logger.error("Storage delete error", { attachmentId, storagePath: attachment.storagePath }, err);
   }
 
   await prisma.attachment.delete({
